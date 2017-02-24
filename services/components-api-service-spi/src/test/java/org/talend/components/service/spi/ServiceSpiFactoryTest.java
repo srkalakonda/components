@@ -7,6 +7,8 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.Map;
 
 import org.junit.Test;
@@ -27,6 +29,18 @@ import org.talend.daikon.definition.Definition;
  */
 public class ServiceSpiFactoryTest {
 
+    private static final class MutableUrlClassLoader extends URLClassLoader {
+
+        private MutableUrlClassLoader(URL[] urls) {
+            super(urls);
+        }
+
+        @Override
+        public void addURL(URL url) {
+            super.addURL(url);
+        }
+    }
+
     @Test
     public void testGetComponentService() throws Exception {
         ComponentService cs = ServiceSpiFactory.getComponentService();
@@ -45,6 +59,18 @@ public class ServiceSpiFactoryTest {
         assertThat(definitions, hasEntry(is("SimpleFileIoDataset"), isA((Class) SimpleFileIODatasetDefinition.class)));
         assertThat(definitions, hasEntry(is("SimpleFileIoInput"), isA((Class) SimpleFileIOInputDefinition.class)));
         assertThat(definitions, hasEntry(is("SimpleFileIoOutput"), isA((Class) SimpleFileIOOutputDefinition.class)));
+    }
+
+    @Test
+    public void testDynamicClassLoaderService(){
+        // DefinitionRegistry reg = new DefinitionRegistry();
+        // URLClassLoader urlClassLoader = new MutableUrlClassLoader(new URL[0]);
+        // for (ComponentInstaller installer : ServiceLoader.load(ComponentInstaller.class, urlClassLoader)) {
+        // installer.install(reg);
+        // }
+        // Map<String, Definition> definitions = reg.getDefinitions();
+        // assertThat(definitions, hasEntry(is("FixedFlowInput"), isA((Class) FixedFlowInputDefinition.class)));
+        // assertThat(definitions, not(hasKey(is("MultiRuntimeExample"))));
     }
 
 }

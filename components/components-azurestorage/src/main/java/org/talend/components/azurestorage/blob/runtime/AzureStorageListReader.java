@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
+import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.IndexedRecord;
 import org.slf4j.Logger;
@@ -32,6 +33,7 @@ import org.talend.components.azurestorage.blob.AzureStorageContainerDefinition;
 import org.talend.components.azurestorage.blob.helpers.RemoteBlob;
 import org.talend.components.azurestorage.blob.tazurestoragecontainerlist.TAzureStorageContainerListDefinition;
 import org.talend.components.azurestorage.blob.tazurestoragelist.TAzureStorageListProperties;
+import org.talend.components.common.avro.RootSchemaUtils;
 
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlob;
@@ -86,8 +88,12 @@ public class AzureStorageListReader extends AzureStorageReader<IndexedRecord> {
         if (startable) {
             dataCount++;
             blobIndex = 0;
-            currentRecord = new GenericData.Record(properties.schema.schema.getValue());
-            currentRecord.put(0, blobs.get(blobIndex).getName());
+            IndexedRecord dataRecord = new GenericData.Record(properties.schema.schema.getValue());
+            dataRecord.put(0, blobs.get(blobIndex).getName());
+            Schema rootSchema = RootSchemaUtils.createRootSchema(properties.schema.schema.getValue(), properties.outOfBandSchema);
+            currentRecord = new GenericData.Record(rootSchema);
+            currentRecord.put(0, dataRecord);
+            currentRecord.put(1, dataRecord);
         }
         return startable;
     }
@@ -97,8 +103,10 @@ public class AzureStorageListReader extends AzureStorageReader<IndexedRecord> {
         blobIndex++;
         if (blobIndex < blobSize) {
             dataCount++;
-            currentRecord = new GenericData.Record(properties.schema.schema.getValue());
-            currentRecord.put(0, blobs.get(blobIndex).getName());
+            IndexedRecord dataRecord = new GenericData.Record(properties.schema.schema.getValue());
+            dataRecord.put(0, blobs.get(blobIndex).getName());
+            currentRecord.put(0, dataRecord);
+            currentRecord.put(1, dataRecord);
             return true;
         }
         return false;

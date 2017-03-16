@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.apache.avro.Schema;
 import org.apache.avro.generic.IndexedRecord;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.talend.components.api.component.runtime.SourceOrSink;
@@ -132,6 +133,13 @@ public class MarketoSourceOrSink implements SourceOrSink, MarketoSourceOrSinkSch
                 record.get(describeSchema.getField("dedupeFields").pos()).toString());
     }
 
+    @Override
+    public Schema getSchemaForCustomObject(String customObjectName) throws IOException {
+        if (StringUtils.isEmpty(customObjectName))
+            return null;
+        return getEndpointSchema(null, customObjectName);
+    }
+
     public static ValidationResult validateConnection(MarketoProvideConnectionProperties properties) {
         ValidationResult vr = new ValidationResult().setStatus(Result.OK);
         try {
@@ -186,11 +194,6 @@ public class MarketoSourceOrSink implements SourceOrSink, MarketoSourceOrSinkSch
             LOG.debug("ClientService : {}", client);
         }
         return client;
-    }
-
-    @Override
-    public Schema getSchemaForParams(ComponentProperties params) {
-        return null;
     }
 
 }

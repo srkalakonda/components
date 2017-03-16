@@ -1,5 +1,6 @@
 package org.talend.components.azurestorage.blob.runtime;
 
+<<<<<<< HEAD
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 
@@ -62,10 +63,38 @@ public class AzureStorageContainerCreateRuntime extends AzureStorageRuntime
 			validationResult.setMessage(messages.getMessage("error.ContainerNameWasNotSet"));
 		}
 		return validationResult;
+=======
+import org.talend.components.api.component.runtime.ComponentDriverInitialization;
+import org.talend.components.api.container.RuntimeContainer;
+import org.talend.components.azurestorage.blob.tazurestoragecontainercreate.TAzureStorageContainerCreateProperties;
+import org.talend.daikon.properties.ValidationResult;
+
+/**
+ * Runtime implementation for AzureStorage container create feature. 
+ * Creates container
+ * These methods are called only on Driver node in following order:
+ * 1) {@link this#initialize(RuntimeContainer, TAzureStorageContainerCreateProperties)}
+ * 2) {@link this#runAtDriver(RuntimeContainer)}
+ * Instances of this class should not be serialized and sent on worker nodes
+ */
+public class AzureStorageContainerCreateRuntime implements ComponentDriverInitialization<TAzureStorageContainerCreateProperties> {
+
+	/**
+	 * Component properties; should not be changed inside this class
+	 */
+	private TAzureStorageContainerCreateProperties properties;
+	
+	@Override
+	public ValidationResult initialize(RuntimeContainer container, TAzureStorageContainerCreateProperties properties) {
+		this.properties = properties;
+		// TODO add some properties validation here
+		return ValidationResult.OK;
+>>>>>>> b8fb72414... fix(TDI-38431): create parent AzureStorageRuntime and move common methods there
 	}
 
 	@Override
 	public void runAtDriver(RuntimeContainer container) {
+<<<<<<< HEAD
 		createAzureContainer(container);
 		setReturnValues(container);
 	}
@@ -115,6 +144,10 @@ public class AzureStorageContainerCreateRuntime extends AzureStorageRuntime
 	private void setReturnValues(RuntimeContainer container) {
 		String componentId = container.getCurrentComponentId();
 		container.setComponentData(componentId, AzureStorageContainerDefinition.RETURN_CONTAINER.toUpperCase(), containerName);
+=======
+		// TODO Auto-generated method stub
+		
+>>>>>>> b8fb72414... fix(TDI-38431): create parent AzureStorageRuntime and move common methods there
 	}
 
 }

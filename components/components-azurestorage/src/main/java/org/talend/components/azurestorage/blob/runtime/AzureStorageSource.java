@@ -27,7 +27,6 @@ import org.talend.components.azurestorage.blob.AzureStorageBlobProperties;
 import org.talend.components.azurestorage.blob.AzureStorageContainerProperties;
 import org.talend.components.azurestorage.blob.helpers.RemoteBlob;
 import org.talend.components.azurestorage.blob.helpers.RemoteBlobGet;
-import org.talend.components.azurestorage.blob.tazurestoragecontainercreate.TAzureStorageContainerCreateProperties;
 import org.talend.components.azurestorage.blob.tazurestoragecontainerdelete.TAzureStorageContainerDeleteProperties;
 import org.talend.components.azurestorage.blob.tazurestoragecontainerexist.TAzureStorageContainerExistProperties;
 import org.talend.components.azurestorage.blob.tazurestoragecontainerlist.TAzureStorageContainerListProperties;
@@ -70,11 +69,6 @@ public class AzureStorageSource extends AzureStorageSourceOrSink implements Boun
     public BoundedReader createReader(RuntimeContainer container) {
         //
         // Container operations
-        //
-        if (properties instanceof TAzureStorageContainerCreateProperties) {
-            TAzureStorageContainerCreateProperties props = (TAzureStorageContainerCreateProperties) properties;
-            return new AzureStorageContainerCreateReader(container, this, props);
-        }
         //
         if (properties instanceof TAzureStorageContainerDeleteProperties) {
             TAzureStorageContainerDeleteProperties props = (TAzureStorageContainerDeleteProperties) properties;

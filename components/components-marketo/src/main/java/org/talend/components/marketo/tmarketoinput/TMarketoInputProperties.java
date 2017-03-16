@@ -20,6 +20,7 @@ import static org.talend.daikon.properties.property.PropertyFactory.newEnum;
 import static org.talend.daikon.properties.property.PropertyFactory.newInteger;
 import static org.talend.daikon.properties.property.PropertyFactory.newString;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -35,9 +36,11 @@ import org.talend.components.marketo.MarketoComponentProperties;
 import org.talend.components.marketo.MarketoConstants;
 import org.talend.components.marketo.helpers.IncludeExcludeTypesTable;
 import org.talend.components.marketo.helpers.MarketoColumnMappingsTable;
+import org.talend.components.marketo.runtime.MarketoSourceOrSink;
 import org.talend.components.marketo.tmarketoconnection.TMarketoConnectionProperties.APIMode;
 import org.talend.daikon.i18n.GlobalI18N;
 import org.talend.daikon.i18n.I18nMessages;
+import org.talend.daikon.properties.PresentationItem;
 import org.talend.daikon.properties.ValidationResult;
 import org.talend.daikon.properties.ValidationResult.Result;
 import org.talend.daikon.properties.presentation.Form;
@@ -295,6 +298,8 @@ public class TMarketoInputProperties extends MarketoComponentProperties {
 
     public Property<String> customObjectFilterValues = newString("customObjectFilterValues");
 
+    public transient PresentationItem fetchCustomObjectSchema = new PresentationItem("fetchCustomObjectSchema", "Fetch schema");
+
     //
     private static final long serialVersionUID = 3335746787979781L;
 
@@ -358,6 +363,7 @@ public class TMarketoInputProperties extends MarketoComponentProperties {
         // Custom Objects
         mainForm.addColumn(customObjectAction);
         mainForm.addRow(customObjectName);
+        mainForm.addColumn(Widget.widget(fetchCustomObjectSchema).setWidgetType(Widget.BUTTON_WIDGET_TYPE));
         mainForm.addRow(customObjectNames);
         mainForm.addRow(customObjectFilterType);
         mainForm.addColumn(customObjectFilterValues);
@@ -422,6 +428,7 @@ public class TMarketoInputProperties extends MarketoComponentProperties {
             // custom objects
             form.getWidget(customObjectAction.getName()).setVisible(false);
             form.getWidget(customObjectName.getName()).setVisible(false);
+            form.getWidget(fetchCustomObjectSchema.getName()).setVisible(false);
             form.getWidget(customObjectNames.getName()).setVisible(false);
             form.getWidget(customObjectFilterType.getName()).setVisible(false);
             form.getWidget(customObjectFilterValues.getName()).setVisible(false);
@@ -519,6 +526,7 @@ public class TMarketoInputProperties extends MarketoComponentProperties {
                     break;
                 case get:
                     form.getWidget(customObjectName.getName()).setVisible(true);
+                    form.getWidget(fetchCustomObjectSchema.getName()).setVisible(true);
                     form.getWidget(customObjectFilterType.getName()).setVisible(true);
                     form.getWidget(customObjectFilterValues.getName()).setVisible(true);
                     form.getWidget(batchSize.getName()).setVisible(true);
@@ -538,6 +546,33 @@ public class TMarketoInputProperties extends MarketoComponentProperties {
             }
         }
         return ValidationResult.OK;
+    }
+
+    public ValidationResult validateFetchCustomObjectSchema() {
+        ValidationResult vr = new ValidationResult();
+        // try (SandboxedInstance sandboxedInstance = RuntimeUtil.createRuntimeClass(new
+        // JarRuntimeInfo(MAVEN_RUNTIME_PATH,
+        // DependenciesReader.computeDependenciesFilePath(MAVEN_GROUP_ID, MAVEN_RUNTIME_ARTIFACT_ID),
+        // RUNTIME_SOURCEORSINK_CLASS), connection.getClass().getClassLoader())) {
+        // MarketoSourceOrSinkSchemaProvider sos = (MarketoSourceOrSinkSchemaProvider) sandboxedInstance.getInstance();
+        try {
+            MarketoSourceOrSink sos = new MarketoSourceOrSink();
+            sos.initialize(null, this);
+            Schema schema = sos.getSchemaForCustomObject(customObjectName.getValue());
+            LOG.warn("CustomObject schema: {}.", schema);
+            if (schema == null) {
+                vr.setStatus(ValidationResult.Result.ERROR).setMessage(messages.getMessage(
+                        "error.validation.customobjects.fetchcustomobjectschema", customObjectName.getValue(), "NULL"));
+                return vr;
+            }
+            schemaInput.schema.setValue(schema);
+            schemaFlow.schema.setValue(schema);
+            vr.setStatus(ValidationResult.Result.OK);
+        } catch (RuntimeException | IOException e) {
+            vr.setStatus(ValidationResult.Result.ERROR).setMessage(messages.getMessage(
+                    "error.validation.customobjects.fetchcustomobjectschema", customObjectName.getValue(), e.getMessage()));
+        }
+        return vr;
     }
 
     public void updateMappings() {

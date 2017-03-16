@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.xml.bind.JAXBException;
@@ -31,8 +32,12 @@ import javax.xml.namespace.QName;
 import javax.xml.ws.BindingProvider;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.cxf.endpoint.Client;
+import org.apache.cxf.frontend.ClientProxy;
 import org.apache.cxf.headers.Header;
 import org.apache.cxf.jaxb.JAXBDataBinding;
+import org.apache.cxf.transport.http.HTTPConduit;
+import org.apache.cxf.transports.http.configuration.HTTPClientPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.talend.components.netsuite.client.model.BasicMetaData;
@@ -59,7 +64,11 @@ public abstract class NetSuiteClientService<PortT> {
 
     protected transient final Logger logger = LoggerFactory.getLogger(getClass());
 
-    public static final int DEFAULT_PAGE_SIZE = 100;
+    public static final long DEFAULT_CONNECTION_TIMEOUT = TimeUnit.SECONDS.toMillis(60);
+
+    public static final long DEFAULT_RECEIVE_TIMEOUT = TimeUnit.SECONDS.toMillis(180);
+
+    public static final int DEFAULT_SEARCH_PAGE_SIZE = 100;
 
     public static final String MESSAGE_LOGGING_ENABLED_PROPERTY_NAME =
             "org.talend.components.netsuite.client.messageLoggingEnabled";
@@ -75,11 +84,14 @@ public abstract class NetSuiteClientService<PortT> {
 
     protected boolean messageLoggingEnabled = false;
 
+    protected long connectionTimeout = DEFAULT_CONNECTION_TIMEOUT;
+    protected long receiveTimeout = DEFAULT_RECEIVE_TIMEOUT;
+
     protected int retryCount = 3;
     protected int retriesBeforeLogin = 2;
     protected int retryInterval = 5;
 
-    protected int searchPageSize = DEFAULT_PAGE_SIZE;
+    protected int searchPageSize = DEFAULT_SEARCH_PAGE_SIZE;
     protected boolean bodyFieldsOnly = true;
     protected boolean returnSearchColumns = false;
 
@@ -552,11 +564,27 @@ public abstract class NetSuiteClientService<PortT> {
         try {
             login(false);
 
-            try {
-                return op.execute(port);
-            } catch (Exception e) {
-                throw new NetSuiteException(e.getMessage(), e);
+            R result = null;
+            for (int i = 0; i < getRetryCount(); i++) {
+                try {
+                    result = op.execute(port);
+                    break;
+                } catch (Exception e) {
+                    if (errorCanBeWorkedAround(e)) {
+                        logger.debug("Attempting workaround, retrying ({})", (i + 1));
+                        waitForRetryInterval();
+                        if (errorRequiresNewLogin(e) || i >= getRetriesBeforeLogin() - 1) {
+                            logger.debug("Re-logging in ({})", (i + 1));
+                            relogin();
+                        }
+                        continue;
+                    } else {
+                        throw new NetSuiteException(e.getMessage(), e);
+                    }
+                }
             }
+            return result;
+
         } finally {
             lock.unlock();
         }
@@ -567,11 +595,23 @@ public abstract class NetSuiteClientService<PortT> {
         try {
             relogin();
 
-            try {
-                return op.execute(port);
-            } catch (Exception e) {
-                throw new NetSuiteException(e.getMessage(), e);
+            R result = null;
+            for (int i = 0; i < getRetryCount(); i++) {
+                try {
+                    result = op.execute(port);
+                    break;
+                } catch (Exception e) {
+                    if (errorCanBeWorkedAround(e)) {
+                        logger.debug("Attempting workaround, retrying ({})", (i + 1));
+                        waitForRetryInterval();
+                        continue;
+                    } else {
+                        throw new NetSuiteException(e.getMessage(), e);
+                    }
+                }
             }
+            return result;
+
         } finally {
             lock.unlock();
         }
@@ -655,6 +695,22 @@ public abstract class NetSuiteClientService<PortT> {
 
     protected abstract void doLogin() throws NetSuiteException;
 
+    public long getConnectionTimeout() {
+        return connectionTimeout;
+    }
+
+    public void setConnectionTimeout(long connectionTimeout) {
+        this.connectionTimeout = connectionTimeout;
+    }
+
+    public long getReceiveTimeout() {
+        return receiveTimeout;
+    }
+
+    public void setReceiveTimeout(long receiveTimeout) {
+        this.receiveTimeout = receiveTimeout;
+    }
+
     public int getRetryCount() {
         return retryCount;
     }
@@ -677,6 +733,14 @@ public abstract class NetSuiteClientService<PortT> {
         this.retryInterval = retryInterval;
     }
 
+    public int getRetriesBeforeLogin() {
+        return retriesBeforeLogin;
+    }
+
+    public void setRetriesBeforeLogin(int retriesBeforeLogin) {
+        this.retriesBeforeLogin = retriesBeforeLogin;
+    }
+
     public boolean isMessageLoggingEnabled() {
         return messageLoggingEnabled;
     }
@@ -685,7 +749,6 @@ public abstract class NetSuiteClientService<PortT> {
         this.messageLoggingEnabled = messageLoggingEnabled;
     }
 
-
     protected void waitForRetryInterval() {
         try {
             Thread.sleep(getRetryInterval() * 1000);
@@ -693,6 +756,10 @@ public abstract class NetSuiteClientService<PortT> {
 
         }
     }
+
+    protected abstract boolean errorCanBeWorkedAround(Throwable t);
+
+    protected abstract boolean errorRequiresNewLogin(Throwable t);
 
     protected void setPreferences(PortT port,
             NsPreferences nsPreferences, NsSearchPreferences nsSearchPreferences) throws NetSuiteException {
@@ -734,6 +801,15 @@ public abstract class NetSuiteClientService<PortT> {
 
     protected void remoteLoginHeaders(PortT port) throws NetSuiteException {
         removeHeader(port, new QName(getPlatformMessageNamespaceUri(), "applicationInfo"));
+    }
+
+    protected void setHttpClientPolicy(PortT port) {
+        Client proxy = ClientProxy.getClient(port);
+        HTTPConduit conduit = (HTTPConduit) proxy.getConduit();
+        HTTPClientPolicy httpClientPolicy = new HTTPClientPolicy();
+        httpClientPolicy.setConnectionTimeout(connectionTimeout);
+        httpClientPolicy.setReceiveTimeout(receiveTimeout);
+        conduit.setClient(httpClientPolicy);
     }
 
     protected abstract String getPlatformMessageNamespaceUri();

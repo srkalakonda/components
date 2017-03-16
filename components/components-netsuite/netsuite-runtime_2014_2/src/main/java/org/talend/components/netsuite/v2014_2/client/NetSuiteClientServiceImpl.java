@@ -120,7 +120,7 @@ public class NetSuiteClientServiceImpl extends NetSuiteClientService<NetSuitePor
     @Override
     public <RecT> NsSearchResult<RecT> searchMore(final int pageIndex) throws NetSuiteException {
         return execute(new PortOperation<NsSearchResult<RecT>, NetSuitePortType>() {
-            @Override public NsSearchResult execute(NetSuitePortType port) throws Exception {
+            @Override public NsSearchResult<RecT> execute(NetSuitePortType port) throws Exception {
                 SearchMoreRequest request = new SearchMoreRequest();
                 request.setPageIndex(pageIndex);
 
@@ -131,10 +131,10 @@ public class NetSuiteClientServiceImpl extends NetSuiteClientService<NetSuitePor
     }
 
     @Override
-    public NsSearchResult<Record> searchMoreWithId(
+    public <RecT> NsSearchResult<RecT> searchMoreWithId(
             final String searchId, final int pageIndex) throws NetSuiteException {
-        return execute(new PortOperation<NsSearchResult<Record>, NetSuitePortType>() {
-            @Override public NsSearchResult execute(NetSuitePortType port) throws Exception {
+        return execute(new PortOperation<NsSearchResult<RecT>, NetSuitePortType>() {
+            @Override public NsSearchResult<RecT> execute(NetSuitePortType port) throws Exception {
                 SearchMoreWithIdRequest request = new SearchMoreWithIdRequest();
                 request.setSearchId(searchId);
                 request.setPageIndex(pageIndex);
@@ -148,7 +148,7 @@ public class NetSuiteClientServiceImpl extends NetSuiteClientService<NetSuitePor
     @Override
     public <RecT> NsSearchResult<RecT> searchNext() throws NetSuiteException {
         return execute(new PortOperation<NsSearchResult<RecT>, NetSuitePortType>() {
-            @Override public NsSearchResult execute(NetSuitePortType port) throws Exception {
+            @Override public NsSearchResult<RecT> execute(NetSuitePortType port) throws Exception {
                 SearchNextRequest request = new SearchNextRequest();
                 SearchResult result = port.searchNext(request).getSearchResult();
                 return toNsSearchResult(result);
@@ -162,7 +162,7 @@ public class NetSuiteClientServiceImpl extends NetSuiteClientService<NetSuitePor
             return new NsWriteResponse();
         }
         return execute(new PortOperation<NsWriteResponse<RefT>, NetSuitePortType>() {
-            @Override public NsWriteResponse execute(NetSuitePortType port) throws Exception {
+            @Override public NsWriteResponse<RefT> execute(NetSuitePortType port) throws Exception {
                 AddRequest request = new AddRequest();
                 request.setRecord((Record) record);
 
@@ -226,7 +226,7 @@ public class NetSuiteClientServiceImpl extends NetSuiteClientService<NetSuitePor
             return new NsWriteResponse();
         }
         return execute(new PortOperation<NsWriteResponse<RefT>, NetSuitePortType>() {
-            @Override public NsWriteResponse execute(NetSuitePortType port) throws Exception {
+            @Override public NsWriteResponse<RefT> execute(NetSuitePortType port) throws Exception {
                 UpsertRequest request = new UpsertRequest();
                 request.setRecord((Record) record);
 
@@ -255,7 +255,7 @@ public class NetSuiteClientServiceImpl extends NetSuiteClientService<NetSuitePor
     @Override
     public <RefT> NsWriteResponse<RefT> delete(final RefT ref) throws NetSuiteException {
         if (ref == null) {
-            return new NsWriteResponse();
+            return new NsWriteResponse<>();
         }
         return execute(new PortOperation<NsWriteResponse<RefT>, NetSuitePortType>() {
             @Override public NsWriteResponse execute(NetSuitePortType port) throws Exception {
@@ -296,6 +296,8 @@ public class NetSuiteClientServiceImpl extends NetSuiteClientService<NetSuitePor
 
     protected void doLogin() throws NetSuiteException {
         port = getNetSuitePort(endpointUrl, credentials.getAccount());
+
+        setHttpClientPolicy(port);
 
         setLoginHeaders(port);
 
@@ -444,13 +446,22 @@ public class NetSuiteClientServiceImpl extends NetSuiteClientService<NetSuitePor
         }
     }
 
-    private boolean errorCanBeWorkedAround (Throwable t) {
+    @Override
+    protected boolean errorCanBeWorkedAround(Throwable t) {
         if (t instanceof InvalidSessionFault ||
                 t instanceof RemoteException ||
                 t instanceof SOAPFaultException ||
                 t instanceof SocketException)
             return true;
 
+        return false;
+    }
+
+    @Override
+    protected boolean errorRequiresNewLogin(Throwable t) {
+        if (t instanceof InvalidSessionFault || t instanceof SocketException) {
+            return true;
+        }
         return false;
     }
 

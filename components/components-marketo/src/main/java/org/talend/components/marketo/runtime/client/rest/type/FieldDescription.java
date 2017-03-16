@@ -19,6 +19,7 @@ import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.talend.components.marketo.MarketoConstants;
 import org.talend.daikon.avro.AvroUtils;
 import org.talend.daikon.avro.SchemaConstants;
 
@@ -205,7 +206,7 @@ public class FieldDescription {
         if (getLength() != null)
             f.addProp(SchemaConstants.TALEND_COLUMN_DB_LENGTH, getLength());
         if (fs.equals(AvroUtils._date()))
-            f.addProp(SchemaConstants.TALEND_COLUMN_PATTERN, "yyyy-MM-dd HH:mm:ss");
+            f.addProp(SchemaConstants.TALEND_COLUMN_PATTERN, MarketoConstants.DATETIME_PATTERN_REST);
         if (updateable != null && !updateable)
             f.addProp(SchemaConstants.TALEND_IS_LOCKED, "true");
 

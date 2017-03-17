@@ -12,20 +12,18 @@
 //==============================================================================
 package org.talend.components.service.rest.configuration;
 
-import java.util.Map;
+import static org.slf4j.LoggerFactory.*;
 
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.talend.components.api.ComponentInstaller;
 import org.talend.components.api.service.ComponentService;
 import org.talend.components.api.service.common.ComponentServiceImpl;
 import org.talend.components.api.service.common.DefinitionRegistry;
+import org.talend.components.service.spi.ServiceSpiFactory;
 import org.talend.daikon.definition.service.DefinitionRegistryService;
-
-import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * Configuration that deals with ComponentRegistry setup.
@@ -52,16 +50,7 @@ public class ComponentsRegistrySetup {
     }
 
     private DefinitionRegistry getComponentRegistry() {
-        if (registry == null) {
-            registry = new DefinitionRegistry();
-            Map<String, ComponentInstaller> installers = context.getBeansOfType(ComponentInstaller.class);
-            for (ComponentInstaller installer : installers.values()) {
-                installer.install(registry);
-                LOGGER.debug("{} installed in the registry", installer);
-            }
-
-            registry.lock();
-        } // else registry already initialised
-        return registry;
+        // using the spi registry
+        return ServiceSpiFactory.getDefinitionRegistry();
     }
 }

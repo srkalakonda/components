@@ -136,15 +136,16 @@ public class FilterExpressionTableTest {
                 "(((PartitionKey eq '12345') and (RowKey gt 'AVID12345')) or (Timestamp ge datetime'2016-01-01 00:00:00')) or (AnUnknownProperty lt 'WEB345')");
 
         // Boolean
-        clearLists();
         columns.add("ABooleanProperty");
         functions.add(COMPARISON_EQUAL);
         values.add("true");
         predicates.add(PREDICATE_AND);
-        fieldTypes.add(FIELD_TYPE_STRING);
+        fieldTypes.add(FIELD_TYPE_BOOLEAN);
         setTableVals();
         query = fet.getCombinedFilterConditions();
-        assertEquals("ABooleanProperty eq 'true'", query);
+        assertEquals(
+                "((((PartitionKey eq '12345') and (RowKey gt 'AVID12345')) or (Timestamp ge datetime'2016-01-01 00:00:00')) or (AnUnknownProperty lt 'WEB345')) and (ABooleanProperty eq true)",
+                query);
 
     }
 

@@ -14,6 +14,7 @@
 		<module>components-api-service-rest</module>
 		<module>components-api-service-rest-all-components</module>
 		<module>components-api-service-spi</module>
+		<module>components-api-service-spi-test</module>
   </modules>
 	<build>
 		<!-- skip the deployment for this aggregator, not necessary -->

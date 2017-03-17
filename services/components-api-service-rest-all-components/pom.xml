@@ -356,12 +356,27 @@
 				<version>0.5.2-TALEND</version>
 				<executions>
 					<execution>
+					    <id>generate-components-classpath</id>
 						<goals>
 							<goal>generate-properties</goal>
 						</goals>
 						<configuration>
 							<name>classpath.linux</name>
 							<value>.m2/%mavenPath%</value>
+							<separator>${path.separator}</separator>
+							<dependencySet>
+								<scope>compile</scope>
+							</dependencySet>
+						</configuration>
+					</execution>
+					<execution>
+					    <id>generate-components-descriptor-props</id>
+						<goals>
+							<goal>generate-properties</goal>
+						</goals>
+						<configuration>
+							<name>pax.mvn.urls</name>
+							<value>%groupId%/%artifactId%/%version%</value>
 							<separator>${path.separator}</separator>
 							<dependencySet>
 								<scope>compile</scope>
@@ -395,6 +410,8 @@
                                     </filterchain>
                                 </loadresource>
                                 <echo message="final classpath:${classpath.linux}" />
+                                <echo message="------" />
+                                <echo message="pax.mvn.urls:${pax.mvn.urls}" />
 							</tasks>
 						</configuration>
 					</execution>

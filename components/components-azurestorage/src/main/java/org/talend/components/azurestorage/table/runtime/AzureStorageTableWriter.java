@@ -214,7 +214,7 @@ public class AzureStorageTableWriter implements WriterWithFeedback<Result, Index
         HashMap<String, EntityProperty> entityProps = new HashMap<>();
         for (Field f : writeSchema.getFields()) {
             if (inputRecord.get(f.pos()) == null) {
-                continue; // record value my be null, No need to set the property in azure in this case
+                continue; // record value may be null, No need to set the property in azure in this case
             }
 
             String sName = f.name(); // schema name
@@ -254,16 +254,21 @@ public class AzureStorageTableWriter implements WriterWithFeedback<Result, Index
                     String clazz = fSchema.getProp(SchemaConstants.JAVA_CLASS_FLAG);
                     if (clazz != null && clazz.equals(Date.class.getCanonicalName())) {
                         Date dt = null;
-                        try {
-                            String pattern = fSchema.getProp(SchemaConstants.TALEND_COLUMN_PATTERN);
-                            dt = new SimpleDateFormat(pattern).parse(inputRecord.get(f.pos()).toString());
-                            entityProps.put(mName, new EntityProperty(dt));
-                        } catch (ParseException e) {
-                            LOGGER.error(i18nMessages.getMessage("error.ParseError", e));
-                            if (properties.dieOnError.getValue()) {
-                                throw new ComponentException(e);
+                        String pattern = fSchema.getProp(SchemaConstants.TALEND_COLUMN_PATTERN);
+                        if (pattern != null && !pattern.isEmpty()) {
+                            try {
+                                dt = new SimpleDateFormat(pattern).parse(inputRecord.get(f.pos()).toString());
+                            } catch (ParseException e) {
+                                LOGGER.error(i18nMessages.getMessage("error.ParseError", e));
+                                if (properties.dieOnError.getValue()) {
+                                    throw new ComponentException(e);
+                                }
                             }
+                        } else {
+                            dt = (Date) inputRecord.get(f.pos());
                         }
+
+                        entityProps.put(mName, new EntityProperty(dt));
                     } else {
                         entityProps.put(mName, new EntityProperty((Long) inputRecord.get(f.pos())));
                     }

@@ -363,7 +363,7 @@ public class TMarketoInputProperties extends MarketoComponentProperties {
         // Custom Objects
         mainForm.addColumn(customObjectAction);
         mainForm.addRow(customObjectName);
-        mainForm.addColumn(Widget.widget(fetchCustomObjectSchema).setWidgetType(Widget.BUTTON_WIDGET_TYPE));
+        mainForm.addColumn(Widget.widget(fetchCustomObjectSchema).setWidgetType(Widget.BUTTON_WIDGET_TYPE).setLongRunning(true));
         mainForm.addRow(customObjectNames);
         mainForm.addRow(customObjectFilterType);
         mainForm.addColumn(customObjectFilterValues);
@@ -559,14 +559,12 @@ public class TMarketoInputProperties extends MarketoComponentProperties {
             MarketoSourceOrSink sos = new MarketoSourceOrSink();
             sos.initialize(null, this);
             Schema schema = sos.getSchemaForCustomObject(customObjectName.getValue());
-            LOG.warn("CustomObject schema: {}.", schema);
             if (schema == null) {
                 vr.setStatus(ValidationResult.Result.ERROR).setMessage(messages.getMessage(
                         "error.validation.customobjects.fetchcustomobjectschema", customObjectName.getValue(), "NULL"));
                 return vr;
             }
             schemaInput.schema.setValue(schema);
-            schemaFlow.schema.setValue(schema);
             vr.setStatus(ValidationResult.Result.OK);
         } catch (RuntimeException | IOException e) {
             vr.setStatus(ValidationResult.Result.ERROR).setMessage(messages.getMessage(
@@ -662,5 +660,9 @@ public class TMarketoInputProperties extends MarketoComponentProperties {
 
     public void afterConnectionApiMode() {
         afterInputOperation();
+    }
+
+    public void afterFetchCustomObjectSchema() {
+        refreshLayout(getForm(Form.MAIN));
     }
 }

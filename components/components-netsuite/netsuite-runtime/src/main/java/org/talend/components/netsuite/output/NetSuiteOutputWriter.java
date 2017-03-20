@@ -37,6 +37,8 @@ public class NetSuiteOutputWriter implements WriterWithFeedback<Result, IndexedR
 
     protected final List<IndexedRecord> rejectedWrites = new ArrayList<>();
 
+    protected boolean exceptionForErrors = true;
+
     protected NetSuiteClientService<?> clientService;
     protected OutputAction action;
 
@@ -68,10 +70,11 @@ public class NetSuiteOutputWriter implements WriterWithFeedback<Result, IndexedR
             String typeName = writeOperation.getProperties().module.moduleName.getValue();
             typeDesc = clientService.getTypeInfo(typeName);
 
-            if (action == OutputAction.DELETE) {
-                transducer = new NsObjectOutputTransducer(clientService, typeDesc.getTypeName(), true);
-            } else {
-                transducer = new NsObjectOutputTransducer(clientService, typeDesc.getTypeName());
+            transducer = new NsObjectOutputTransducer(clientService, typeDesc.getTypeName());
+            if (action == OutputAction.UPDATE || action == OutputAction.UPSERT) {
+                transducer.setRecordSource(new NsObjectOutputTransducer.DefaultRecordSource(clientService));
+            } else if (action == OutputAction.DELETE) {
+                transducer.setReference(true);
             }
 
         } catch (NetSuiteException e) {
@@ -82,25 +85,24 @@ public class NetSuiteOutputWriter implements WriterWithFeedback<Result, IndexedR
     @Override
     public void write(Object object) throws IOException {
         IndexedRecord record = (IndexedRecord) object;
-        try {
-            NsWriteResponse<?> writeResponse;
-            if (action == OutputAction.ADD) {
-                writeResponse = clientService.add(transduceRecord(record));
-            } else if (action == OutputAction.UPDATE) {
-                writeResponse = clientService.update(transduceRecord(record));
-            } else if (action == OutputAction.UPSERT) {
-                writeResponse = clientService.upsert(transduceRecord(record));
-            } else if (action == OutputAction.DELETE) {
-                writeResponse = clientService.delete(transduceRecord(record));
-            } else {
-                throw new NetSuiteException("Output operation not implemented: " + action);
+        NsWriteResponse<?> writeResponse;
+        if (action == OutputAction.ADD) {
+            writeResponse = clientService.add(transduceRecord(record));
+        } else if (action == OutputAction.UPDATE) {
+            writeResponse = clientService.update(transduceRecord(record));
+        } else if (action == OutputAction.UPSERT) {
+            writeResponse = clientService.upsert(transduceRecord(record));
+        } else if (action == OutputAction.DELETE) {
+            writeResponse = clientService.delete(transduceRecord(record));
+        } else {
+            throw new NetSuiteException("Output operation not implemented: " + action);
+        }
+        if (writeResponse.getStatus().isSuccess()) {
+            successfulWrites.add(record);
+        } else {
+            if (exceptionForErrors) {
+                NetSuiteClientService.checkError(writeResponse.getStatus());
             }
-            if (writeResponse.getStatus().isSuccess()) {
-                successfulWrites.add(record);
-            } else {
-                rejectedWrites.add(record);
-            }
-        } catch (IOException e) {
             rejectedWrites.add(record);
         }
         dataCount++;

@@ -86,6 +86,8 @@ public class NetSuiteOutputTransducerTest extends NetSuiteMockTestBase {
         NetSuiteRuntime netSuiteRuntime = new NetSuiteRuntimeImpl();
         NetSuiteDatasetRuntime dataSetRuntime = netSuiteRuntime.getDatasetRuntime(mockTestFixture.getConnectionProperties());
 
+        mockGetRequestResults(null);
+
         TypeDesc typeDesc = clientService.getTypeInfo("Opportunity");
 
         Schema schema = dataSetRuntime.getSchema(typeDesc.getTypeName());
@@ -143,7 +145,8 @@ public class NetSuiteOutputTransducerTest extends NetSuiteMockTestBase {
         Schema schema = dataSetRuntime.getSchema(typeDesc.getTypeName());
 
         NsObjectOutputTransducer transducer = new NsObjectOutputTransducer(webServiceMockTestFixture.getClientService(),
-                referencedTypeDesc.getTypeName(), true);
+                referencedTypeDesc.getTypeName());
+        transducer.setReference(true);
 
         List<IndexedRecord> indexedRecordList = makeIndexedRecords(clientService, schema,
                 new SimpleObjectComposer<>(typeDesc.getTypeClass()), 10);
@@ -162,6 +165,8 @@ public class NetSuiteOutputTransducerTest extends NetSuiteMockTestBase {
 
         NetSuiteRuntime netSuiteRuntime = new NetSuiteRuntimeImpl();
         NetSuiteDatasetRuntime dataSetRuntime = netSuiteRuntime.getDatasetRuntime(mockTestFixture.getConnectionProperties());
+
+        mockGetRequestResults(null);
 
         TypeDesc basicTypeDesc = clientService.getBasicMetaData().getTypeInfo("Opportunity");
 

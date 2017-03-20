@@ -100,6 +100,8 @@ public class NetSuiteOutputWriterTest extends NetSuiteMockTestBase {
         final TypeDesc typeDesc = webServiceMockTestFixture.getClientService().getTypeInfo(
                 RecordTypeEnum.OPPORTUNITY.getTypeName());
 
+        mockGetRequestResults(null);
+
         final List<Opportunity> updatedRecordList = new ArrayList<>();
         when(port.update(any(UpdateRequest.class))).then(new Answer<UpdateResponse>() {
             @Override public UpdateResponse answer(InvocationOnMock invocationOnMock) throws Throwable {

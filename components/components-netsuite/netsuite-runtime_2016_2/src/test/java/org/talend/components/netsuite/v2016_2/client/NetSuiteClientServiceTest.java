@@ -161,26 +161,29 @@ public class NetSuiteClientServiceTest extends NetSuiteMockTestBase {
         });
         for (SearchFieldOperatorName operatorName : searchFieldOperatorNameList) {
             assertNotNull(operatorName.getDataType());
-
-            String i18nEntry = Property.I18N_PROPERTY_POSSIBLE_VALUE_PREFIX;
-            if (SearchFieldOperatorType.BOOLEAN.dataTypeEquals(operatorName.getDataType())) {
-                i18nEntry += operatorName.getQualifiedName() + ".displayName=" +
-                        operatorName.getDataType() +
-                        " (true | false)";
-            } else {
-                if (SearchFieldOperatorType.DATE.dataTypeEquals(operatorName.getDataType())) {
-                    i18nEntry += operatorName.getQualifiedName() + ".displayName=" +
-                            operatorName.getDataType() + " - " + operatorName.getName() +
-                            " (yyyy-MM-dd HH:mm:ss)";
-                } else {
-                    i18nEntry += operatorName.getQualifiedName() + ".displayName=" +
-                            operatorName.getDataType() + " - " + operatorName.getName();
-                }
-
+            if (!SearchFieldOperatorType.BOOLEAN.dataTypeEquals(operatorName.getDataType())) {
                 assertNotNull(operatorName.getName());
             }
-            System.out.println(i18nEntry);
         }
+
+//        for (SearchFieldOperatorName operatorName : searchFieldOperatorNameList) {
+//            String i18nEntry = Property.I18N_PROPERTY_POSSIBLE_VALUE_PREFIX;
+//            if (SearchFieldOperatorType.BOOLEAN.dataTypeEquals(operatorName.getDataType())) {
+//                i18nEntry += operatorName.getQualifiedName() + ".displayName=" +
+//                        operatorName.getDataType() +
+//                        " (true | false)";
+//            } else {
+//                if (SearchFieldOperatorType.DATE.dataTypeEquals(operatorName.getDataType())) {
+//                    i18nEntry += operatorName.getQualifiedName() + ".displayName=" +
+//                            operatorName.getDataType() + " - " + operatorName.getName() +
+//                            " (yyyy-MM-dd HH:mm:ss)";
+//                } else {
+//                    i18nEntry += operatorName.getQualifiedName() + ".displayName=" +
+//                            operatorName.getDataType() + " - " + operatorName.getName();
+//                }
+//            }
+//            System.out.println(i18nEntry);
+//        }
     }
 
 }

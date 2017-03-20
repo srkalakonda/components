@@ -40,6 +40,7 @@ import org.apache.cxf.transport.http.HTTPConduit;
 import org.apache.cxf.transports.http.configuration.HTTPClientPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.talend.components.netsuite.NetSuiteErrorCode;
 import org.talend.components.netsuite.client.model.BasicMetaData;
 import org.talend.components.netsuite.client.model.BasicRecordType;
 import org.talend.components.netsuite.client.model.CustomFieldDesc;
@@ -56,6 +57,7 @@ import org.talend.components.netsuite.client.model.customfield.CustomFieldRefTyp
 import org.talend.components.netsuite.client.search.SearchQuery;
 import org.talend.daikon.NamedThing;
 import org.talend.daikon.SimpleNamedThing;
+import org.talend.daikon.exception.ExceptionContext;
 
 /**
  *
@@ -228,6 +230,9 @@ public abstract class NetSuiteClientService<PortT> {
             throws NetSuiteException;
 
     public abstract <RecT> NsSearchResult<RecT> searchNext()
+            throws NetSuiteException;
+
+    public abstract <RecT, RefT> NsReadResponse<RecT> get(final RefT ref)
             throws NetSuiteException;
 
     public abstract <RecT, RefT> NsWriteResponse<RefT> add(final RecT record)
@@ -826,5 +831,15 @@ public abstract class NetSuiteClientService<PortT> {
 
     public interface PortOperation<R, PortT> {
         R execute(PortT port) throws Exception;
+    }
+
+    public static void checkError(NsStatus status) throws NetSuiteException {
+        if (!status.getDetails().isEmpty()) {
+            NsStatus.Detail detail = status.getDetails().get(0);
+            if (detail.getType() == NsStatus.Type.ERROR) {
+                throw new NetSuiteException(new NetSuiteErrorCode(detail.getCode()),
+                        ExceptionContext.build().put(ExceptionContext.KEY_MESSAGE, detail.getMessage()));
+            }
+        }
     }
 }

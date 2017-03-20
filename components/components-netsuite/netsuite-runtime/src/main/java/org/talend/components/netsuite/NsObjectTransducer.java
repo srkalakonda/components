@@ -19,8 +19,10 @@ import static org.talend.components.netsuite.client.model.beans.Beans.getSimpleP
 import static org.talend.components.netsuite.client.model.beans.Beans.setSimpleProperty;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -34,8 +36,10 @@ import org.joda.time.DateTimeZone;
 import org.joda.time.MutableDateTime;
 import org.talend.components.api.exception.ComponentException;
 import org.talend.components.netsuite.client.NetSuiteClientService;
+import org.talend.components.netsuite.client.NsRef;
 import org.talend.components.netsuite.client.model.CustomFieldDesc;
 import org.talend.components.netsuite.client.model.FieldDesc;
+import org.talend.components.netsuite.client.model.SimpleFieldDesc;
 import org.talend.components.netsuite.client.model.TypeDesc;
 import org.talend.components.netsuite.client.model.beans.BeanInfo;
 import org.talend.components.netsuite.client.model.beans.Beans;
@@ -211,46 +215,69 @@ public abstract class NsObjectTransducer {
         }
     }
 
-    protected Object writeField(Object nsObject, FieldDesc fieldDesc, Object value) {
-        ValueConverter valueConverter = getValueConverter(fieldDesc);
+    protected void writeField(Object nsObject, FieldDesc fieldDesc, Map<String, Object> customFieldMap,
+            boolean replace, Collection<String> nullFieldNames, Object value) {
         if (fieldDesc instanceof CustomFieldDesc) {
-            CustomFieldDesc customFieldInfo = fieldDesc.asCustom();
-            Object targetValue = valueConverter.convertOutput(value);
+            writeCustomField(nsObject, fieldDesc.asCustom(), customFieldMap, replace, nullFieldNames, value);
+        } else {
+            writeSimpleField(nsObject, fieldDesc.asSimple(), replace, nullFieldNames, value);
+        }
+    }
 
-            if (targetValue != null) {
-                CustomFieldRefType customFieldRefType = customFieldInfo.getCustomFieldType();
+    protected void writeCustomField(Object nsObject, CustomFieldDesc fieldDesc, Map<String, Object> customFieldMap,
+            boolean replace, Collection<String> nullFieldNames, Object value) {
 
-                Object customFieldListWrapper = getSimpleProperty(nsObject, "customFieldList");
-                if (customFieldListWrapper == null) {
-                    customFieldListWrapper = clientService.getBasicMetaData()
-                            .createInstance("CustomFieldList");
-                    setSimpleProperty(nsObject, "customFieldList", customFieldListWrapper);
-                }
-                List<Object> customFieldList = (List<Object>) getSimpleProperty(
-                        customFieldListWrapper, "customField");
+        NsRef ref = fieldDesc.getRef();
+        CustomFieldRefType customFieldRefType = fieldDesc.getCustomFieldType();
 
-                Object customField = clientService.getBasicMetaData()
-                        .createInstance(customFieldRefType.getTypeName());
-                setSimpleProperty(customField, "scriptId", customFieldInfo.getRef().getScriptId());
-                setSimpleProperty(customField, "internalId", customFieldInfo.getRef().getInternalId());
 
-                setSimpleProperty(customField, "value", targetValue);
+        Object customFieldListWrapper = getSimpleProperty(nsObject, "customFieldList");
+        if (customFieldListWrapper == null) {
+            customFieldListWrapper = clientService.getBasicMetaData().createInstance("CustomFieldList");
+            setSimpleProperty(nsObject, "customFieldList", customFieldListWrapper);
+        }
+        List<Object> customFieldList = (List<Object>) getSimpleProperty(customFieldListWrapper, "customField");
+
+        Object customField = customFieldMap.get(ref.getScriptId());
+        ValueConverter valueConverter = getValueConverter(fieldDesc);
+
+        Object targetValue = valueConverter.convertOutput(value);
+
+        if (targetValue == null) {
+            if (replace && customField != null && customFieldList != null) {
+                customFieldList.remove(customField);
+                nullFieldNames.add(fieldDesc.getInternalName());
+            }
+        } else {
+            if (customField == null) {
+                customField = clientService.getBasicMetaData().createInstance(customFieldRefType.getTypeName());
+
+                setSimpleProperty(customField, "scriptId", ref.getScriptId());
+                setSimpleProperty(customField, "internalId", ref.getInternalId());
 
                 customFieldList.add(customField);
-
-                return targetValue;
+                customFieldMap.put(ref.getScriptId(), customField);
             }
 
-        } else {
-            Object targetValue = valueConverter.convertOutput(value);
-
-            if (targetValue != null) {
-                setSimpleProperty(nsObject, fieldDesc.getInternalName(), targetValue);
-                return targetValue;
-            }
+            setSimpleProperty(customField, "value", targetValue);
         }
+    }
 
-        return null;
+    protected void writeSimpleField(Object nsObject, SimpleFieldDesc fieldDesc,
+            boolean replace, Collection<String> nullFieldNames, Object value) {
+
+        ValueConverter valueConverter = getValueConverter(fieldDesc);
+
+        Object targetValue = valueConverter.convertOutput(value);
+
+        if (targetValue == null) {
+            if (replace) {
+                setSimpleProperty(nsObject, fieldDesc.getInternalName(), null);
+                nullFieldNames.add(fieldDesc.getInternalName());
+            }
+        } else {
+            setSimpleProperty(nsObject, fieldDesc.getInternalName(), targetValue);
+        }
     }
 
     public ValueConverter<?, ?> getValueConverter(FieldDesc fieldDesc) {

@@ -16,6 +16,8 @@ package org.talend.components.netsuite.output;
 import static org.talend.components.netsuite.client.model.beans.Beans.getSimpleProperty;
 import static org.talend.components.netsuite.client.model.beans.Beans.setSimpleProperty;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -153,6 +155,21 @@ public class NsObjectOutputTransducer extends NsObjectTransducer {
 
             Set<String> nullFieldNames = new HashSet<>();
 
+            Map<String, Object> customFieldMap = Collections.emptyMap();
+
+            if (!reference && beanInfo.getProperty("customFieldList") != null) {
+                customFieldMap = new HashMap<>();
+
+                Object customFieldListWrapper = getSimpleProperty(nsObject, "customFieldList");
+                if (customFieldListWrapper != null) {
+                    List<Object> customFieldList = (List<Object>) getSimpleProperty(customFieldListWrapper, "customField");
+                    for (Object customField : customFieldList) {
+                        String scriptId = (String) getSimpleProperty(customField, "scriptId");
+                        customFieldMap.put(scriptId, customField);
+                    }
+                }
+            }
+
             for (Schema.Field field : schema.getFields()) {
                 String fieldName = field.name();
                 FieldDesc fieldDesc = fieldMap.get(fieldName);
@@ -162,10 +179,7 @@ public class NsObjectOutputTransducer extends NsObjectTransducer {
                 }
 
                 Object value = indexedRecord.get(field.pos());
-                Object result = writeField(nsObject, fieldDesc, value);
-                if (result == null) {
-                    nullFieldNames.add(fieldDesc.getInternalName());
-                }
+                writeField(nsObject, fieldDesc, customFieldMap, false, nullFieldNames, value);
             }
 
             if (!nullFieldNames.isEmpty() && beanInfo.getProperty("nullFieldList") != null) {
@@ -180,7 +194,7 @@ public class NsObjectOutputTransducer extends NsObjectTransducer {
                 if (refType == RefType.RECORD_REF) {
                     FieldDesc recTypeFieldDesc = typeDesc.getField("Type");
                     RecordTypeDesc recordTypeDesc = recordTypeInfo.getRecordType();
-                    writeField(nsObject, recTypeFieldDesc, recordTypeDesc.getType());
+                    writeSimpleField(nsObject, recTypeFieldDesc.asSimple(), false, nullFieldNames, recordTypeDesc.getType());
                 }
             }
 
@@ -208,9 +222,8 @@ public class NsObjectOutputTransducer extends NsObjectTransducer {
             NsReadResponse<?> readResponse = clientService.get(ref);
             if (readResponse.getStatus().isSuccess()) {
                 return readResponse.getRecord();
-            } else if (!readResponse.getStatus().getDetails().isEmpty()) {
-                NetSuiteClientService.checkError(readResponse.getStatus());
             }
+            NetSuiteClientService.checkError(readResponse.getStatus());
             return null;
         }
     }

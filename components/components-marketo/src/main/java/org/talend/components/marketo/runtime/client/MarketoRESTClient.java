@@ -1322,7 +1322,6 @@ public class MarketoRESTClient extends MarketoClient implements MarketoClientSer
                 MarketoRecordResult mkr = new MarketoRecordResult();
                 mkr.setRequestId(REST + "::" + ltm.get("requestId"));
                 mkr.setSuccess(Boolean.parseBoolean(ltm.get("success").toString()));
-                LOG.warn("ltm = {}.", ltm);
                 return mkr;
             } else {
                 LOG.error("POST request failed: {}", responseCode);

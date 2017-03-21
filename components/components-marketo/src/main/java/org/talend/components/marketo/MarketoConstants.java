@@ -23,7 +23,6 @@ import org.talend.daikon.avro.SchemaConstants;
 
 /**
  * Common shared schemas and constants
- * 
  */
 public class MarketoConstants {
 
@@ -127,7 +126,6 @@ public class MarketoConstants {
      * At","dataType":"datetime","updateable":false},{"name":"acquiredAt","displayName":"Acquired
      * at","dataType":"date","updateable":true},{"name":"brand","displayName":"Brand","dataType":"string","length":255,"updateable":true},{"name":"customerId","displayName":"Customer
      * Id","dataType":"integer","updateable":true},{"name":"model","displayName":"Model","dataType":"string","length":255,"updateable":true}]}],"success":true}
-     *
      */
     public static Schema getCustomObjectDescribeSchema() {
         return record("CustomObject").fields()//
@@ -250,7 +248,7 @@ public class MarketoConstants {
     /////////////////////////////////////////////////////////////////////////
     public static Schema getSOAPSchemaForGetLeadOrGetMultipleLeads() {
         return SchemaBuilder.builder().record("getLeadOrGetMultipleLeads").fields() //
-                .name("Id").prop(SchemaConstants.TALEND_COLUMN_IS_KEY, "true").type().nullable().longType().noDefault() //
+                .name("Id").prop(SchemaConstants.TALEND_COLUMN_IS_KEY, "true").type().nullable().intType().noDefault() //
                 .name("Email").type().nullable().stringType().noDefault() //
                 .name("ForeignSysPersonId").type().nullable().stringType().noDefault() //
                 .name("ForeignSysType").type().nullable().stringType().noDefault() //
@@ -259,7 +257,7 @@ public class MarketoConstants {
 
     public static Schema getSOAPSchemaForGetLeadChanges() {
         return SchemaBuilder.builder().record("getLeadChanges").fields() //
-                .name("Id").prop(SchemaConstants.TALEND_COLUMN_IS_KEY, "true").type().nullable().longType().noDefault() //
+                .name("Id").prop(SchemaConstants.TALEND_COLUMN_IS_KEY, "true").type().nullable().intType().noDefault() //
                 .name("ActivityDateTime")//
                 .prop(SchemaConstants.TALEND_COLUMN_PATTERN, DATETIME_PATTERN_SOAP)//
                 .prop(SchemaConstants.JAVA_CLASS_FLAG, Date.class.getCanonicalName()) //
@@ -274,7 +272,7 @@ public class MarketoConstants {
 
     public static Schema getSOAPSchemaForGetLeadActivity() {
         return SchemaBuilder.builder().record("getLeadActivity").fields() //
-                .name("Id").prop(SchemaConstants.TALEND_COLUMN_IS_KEY, "true").type().nullable().longType().noDefault() //
+                .name("Id").prop(SchemaConstants.TALEND_COLUMN_IS_KEY, "true").type().nullable().intType().noDefault() //
                 .name("ActivityDateTime")//
                 .prop(SchemaConstants.TALEND_COLUMN_PATTERN, DATETIME_PATTERN_SOAP)
                 .prop(SchemaConstants.JAVA_CLASS_FLAG, Date.class.getCanonicalName()) //

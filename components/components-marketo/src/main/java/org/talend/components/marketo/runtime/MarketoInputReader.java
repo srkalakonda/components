@@ -16,11 +16,16 @@ import static org.talend.components.api.component.ComponentDefinition.RETURN_ERR
 import static org.talend.components.marketo.MarketoComponentDefinition.RETURN_NB_CALL;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
+import org.apache.avro.Schema;
+import org.apache.avro.Schema.Field;
 import org.apache.avro.generic.IndexedRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.talend.components.api.component.runtime.AbstractBoundedReader;
 import org.talend.components.api.component.runtime.Result;
 import org.talend.components.api.container.RuntimeContainer;
@@ -28,6 +33,10 @@ import org.talend.components.marketo.runtime.client.MarketoClientService;
 import org.talend.components.marketo.runtime.client.MarketoRESTClient;
 import org.talend.components.marketo.runtime.client.type.MarketoRecordResult;
 import org.talend.components.marketo.tmarketoinput.TMarketoInputProperties;
+import org.talend.components.marketo.tmarketoinput.TMarketoInputProperties.InputOperation;
+import org.talend.daikon.di.DiSchemaConstants;
+import org.talend.daikon.i18n.GlobalI18N;
+import org.talend.daikon.i18n.I18nMessages;
 
 public class MarketoInputReader extends AbstractBoundedReader<IndexedRecord> {
 
@@ -49,98 +58,113 @@ public class MarketoInputReader extends AbstractBoundedReader<IndexedRecord> {
 
     protected int recordIndex;
 
+    Boolean isDynamic = Boolean.FALSE;
+
+    private transient static final Logger LOG = LoggerFactory.getLogger(MarketoInputReader.class);
+
+    private static final I18nMessages messages = GlobalI18N.getI18nMessageProvider().getI18nMessages(MarketoInputReader.class);
+
     public MarketoInputReader(RuntimeContainer adaptor, MarketoSource source, TMarketoInputProperties properties) {
         super(source);
         this.adaptor = adaptor;
         this.source = source;
         this.properties = properties;
+        // check if we've a dynamic schema...
+        isDynamic = this.properties.schemaInput.schema.getValue()
+                .getProp(DiSchemaConstants.TALEND6_DYNAMIC_COLUMN_POSITION) != null;
+    }
+
+    public void adaptSchemaToDynamic() throws IOException {
+        Schema design = this.properties.schemaInput.schema.getValue();
+        if (isDynamic) {
+            try {
+                Schema runtimeSchema = null;
+                if (!properties.inputOperation.getValue().equals(InputOperation.CustomObject)) {
+                    runtimeSchema = source.getDynamicSchema("", design);
+                    // preserve mappings to re-apply them after
+                    Map<String, String> mappings = properties.mappingInput.getNameMappingsForMarketo();
+                    List<String> columnNames = new ArrayList<>();
+                    List<String> mktoNames = new ArrayList<>();
+                    for (Field f : runtimeSchema.getFields()) {
+                        columnNames.add(f.name());
+                        if (mappings.get(f.name()) != null) {
+                            mktoNames.add(mappings.get(f.name()));
+                        } else {
+                            mktoNames.add("");
+                        }
+                    }
+                    properties.mappingInput.columnName.setValue(columnNames);
+                    properties.mappingInput.marketoColumnName.setValue(mktoNames);
+                } else {
+                    runtimeSchema = source.getDynamicSchema(properties.customObjectName.getValue(), design);
+                }
+                properties.schemaInput.schema.setValue(runtimeSchema);
+            } catch (IOException e) {
+                LOG.error(e.getMessage());
+                throw e;
+            }
+        }
+    }
+
+    public MarketoRecordResult executeOperation(String position) throws IOException {
+        switch (properties.inputOperation.getValue()) {
+        case getLead:
+            if (isDynamic)
+                adaptSchemaToDynamic();
+            return client.getLead(properties, position);
+        case getMultipleLeads:
+            if (isDynamic)
+                adaptSchemaToDynamic();
+
+            return client.getMultipleLeads(properties, position);
+        case getLeadActivity:
+            return client.getLeadActivity(properties, position);
+        case getLeadChanges:
+            return client.getLeadChanges(properties, position);
+        case CustomObject:
+            switch (properties.customObjectAction.getValue()) {
+            case describe:
+                return ((MarketoRESTClient) client).describeCustomObject(properties);
+            case list:
+                return ((MarketoRESTClient) client).listCustomObjects(properties);
+            case get:
+                if (isDynamic)
+                    adaptSchemaToDynamic();
+                return ((MarketoRESTClient) client).getCustomObjects(properties, position);
+            }
+        }
+        throw new IOException(messages.getMessage("error.reader.invalid.operation"));
     }
 
     @Override
     public boolean start() throws IOException {
         Boolean startable = false;
         client = source.getClientService(null);
-        switch (properties.inputOperation.getValue()) {
-        case getLead:
-            mktoResult = client.getLead(properties, null);
-            break;
-        case getMultipleLeads:
-            mktoResult = client.getMultipleLeads(properties, null);
-            break;
-        case getLeadActivity:
-            mktoResult = client.getLeadActivity(properties, null);
-            break;
-        case getLeadChanges:
-            mktoResult = client.getLeadChanges(properties, null);
-            break;
-        case CustomObject:
-            switch (properties.customObjectAction.getValue()) {
-            case describe:
-                mktoResult = ((MarketoRESTClient) client).describeCustomObject(properties);
-                break;
-            case list:
-                mktoResult = ((MarketoRESTClient) client).listCustomObjects(properties);
-                break;
-            case get:
-                mktoResult = ((MarketoRESTClient) client).getCustomObjects(properties, null);
-                break;
-            }
-            break;
-        }
+        mktoResult = executeOperation(null);
         startable = mktoResult.getRecordCount() > 0;
         apiCalls++;
         if (startable) {
             records = mktoResult.getRecords();
             recordIndex = 0;
         }
-
         return startable;
     }
 
     @Override
     public boolean advance() throws IOException {
         recordIndex++;
-        if (recordIndex < records.size()) {
+        if (recordIndex < records.size())
             return true;
-        }
-        if (mktoResult.getRemainCount() == 0) {
+        if (mktoResult.getRemainCount() == 0)
             return false;
-        }
         // fetch more data
-        switch (properties.inputOperation.getValue()) {
-        case getLead:
-            mktoResult = client.getLead(properties, mktoResult.getStreamPosition());
-            break;
-        case getMultipleLeads:
-            mktoResult = client.getMultipleLeads(properties, mktoResult.getStreamPosition());
-            break;
-        case getLeadActivity:
-            mktoResult = client.getLeadActivity(properties, mktoResult.getStreamPosition());
-            break;
-        case getLeadChanges:
-            mktoResult = client.getLeadChanges(properties, mktoResult.getStreamPosition());
-            break;
-        case CustomObject:
-            switch (properties.customObjectAction.getValue()) {
-            case describe:
-                mktoResult = ((MarketoRESTClient) client).describeCustomObject(properties);
-                break;
-            case list:
-                mktoResult = ((MarketoRESTClient) client).listCustomObjects(properties);
-                break;
-            case get:
-                mktoResult = ((MarketoRESTClient) client).getCustomObjects(properties, mktoResult.getStreamPosition());
-                break;
-            }
-            break;
-        }
+        mktoResult = executeOperation(mktoResult.getStreamPosition());
         boolean advanceable = mktoResult.getRecordCount() > 0;
         apiCalls++;
         if (advanceable) {
             records = mktoResult.getRecords();
             recordIndex = 0;
         }
-
         return advanceable;
     }
 

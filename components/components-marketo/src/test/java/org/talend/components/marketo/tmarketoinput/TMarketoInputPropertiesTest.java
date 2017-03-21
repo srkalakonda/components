@@ -35,6 +35,7 @@ import org.talend.components.marketo.tmarketoinput.TMarketoInputProperties.LeadK
 import org.talend.components.marketo.tmarketoinput.TMarketoInputProperties.LeadKeyTypeSOAP;
 import org.talend.components.marketo.tmarketoinput.TMarketoInputProperties.LeadSelector;
 import org.talend.components.marketo.tmarketoinput.TMarketoInputProperties.ListParam;
+import org.talend.daikon.properties.ValidationResult.Result;
 import org.talend.daikon.properties.presentation.Form;
 
 public class TMarketoInputPropertiesTest extends MarketoTestBase {
@@ -388,6 +389,7 @@ public class TMarketoInputPropertiesTest extends MarketoTestBase {
     @Test
     public void testGetAllSchemaPropertiesConnectors() {
         assertEquals(Collections.singleton(props.MAIN_CONNECTOR), props.getAllSchemaPropertiesConnectors(true));
+        assertEquals(Collections.emptySet(), props.getAllSchemaPropertiesConnectors(false));
     }
 
     @Test
@@ -780,18 +782,35 @@ public class TMarketoInputPropertiesTest extends MarketoTestBase {
         props.afterInputOperation();
         assertEquals(MarketoConstants.getCustomObjectRecordSchema(), props.schemaInput.schema.getValue());
         props.inputOperation.setValue(InputOperation.getLeadActivity);
-        props.afterInputOperation();
+        props.afterCustomObjectAction();
         assertEquals(MarketoConstants.getRESTSchemaForGetLeadActivity(), props.schemaInput.schema.getValue());
         props.inputOperation.setValue(InputOperation.CustomObject);
         props.customObjectAction.setValue(CustomObjectAction.describe);
-        props.afterInputOperation();
+        props.afterCustomObjectAction();
         assertEquals(MarketoConstants.getCustomObjectDescribeSchema(), props.schemaInput.schema.getValue());
         props.customObjectAction.setValue(CustomObjectAction.list);
-        props.afterInputOperation();
+        props.afterCustomObjectAction();
         assertEquals(MarketoConstants.getCustomObjectDescribeSchema(), props.schemaInput.schema.getValue());
         props.customObjectAction.setValue(CustomObjectAction.get);
-        props.afterInputOperation();
+        props.afterCustomObjectAction();
         assertEquals(MarketoConstants.getCustomObjectRecordSchema(), props.schemaInput.schema.getValue());
     }
 
+    @Test
+    public void testValidateInputOperation() throws Exception {
+        assertEquals(Result.OK, props.validateInputOperation().getStatus());
+        props.inputOperation.setValue(InputOperation.CustomObject);
+        props.connection.apiMode.setValue(APIMode.SOAP);
+        assertEquals(Result.ERROR, props.validateInputOperation().getStatus());
+    }
+
+    @Test
+    public void testValidateFetchCustomObjectSchema() throws Exception {
+        props.inputOperation.setValue(InputOperation.CustomObject);
+        props.customObjectAction.setValue(CustomObjectAction.get);
+        props.refreshLayout(props.getForm(Form.MAIN));
+        props.afterInputOperation();
+        assertEquals(Result.ERROR, props.validateFetchCustomObjectSchema().getStatus());
+        props.afterFetchCustomObjectSchema();
+    }
 }

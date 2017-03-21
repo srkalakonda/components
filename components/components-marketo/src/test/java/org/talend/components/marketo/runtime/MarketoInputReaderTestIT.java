@@ -17,7 +17,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.slf4j.LoggerFactory.getLogger;
 import static org.talend.components.marketo.MarketoComponentDefinition.RETURN_NB_CALL;
+import static org.talend.components.marketo.tmarketoconnection.TMarketoConnectionProperties.APIMode.REST;
 import static org.talend.components.marketo.tmarketoconnection.TMarketoConnectionProperties.APIMode.SOAP;
+import static org.talend.components.marketo.tmarketoinput.TMarketoInputProperties.InputOperation.CustomObject;
 import static org.talend.components.marketo.tmarketoinput.TMarketoInputProperties.InputOperation.getLead;
 import static org.talend.components.marketo.tmarketoinput.TMarketoInputProperties.InputOperation.getLeadActivity;
 import static org.talend.components.marketo.tmarketoinput.TMarketoInputProperties.InputOperation.getLeadChanges;
@@ -28,10 +30,17 @@ import static org.talend.components.marketo.tmarketoinput.TMarketoInputPropertie
 import static org.talend.components.marketo.tmarketoinput.TMarketoInputProperties.ListParam.STATIC_LIST_NAME;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
+import org.apache.avro.Schema;
+import org.apache.avro.generic.IndexedRecord;
 import org.junit.Test;
 import org.slf4j.Logger;
+import org.talend.components.marketo.MarketoConstants;
 import org.talend.components.marketo.tmarketoinput.TMarketoInputProperties;
+import org.talend.components.marketo.tmarketoinput.TMarketoInputProperties.CustomObjectAction;
+import org.talend.components.marketo.tmarketoinput.TMarketoInputProperties.LeadKeyTypeREST;
+import org.talend.daikon.di.DiSchemaConstants;
 
 public class MarketoInputReaderTestIT extends MarketoBaseTestIT {
 
@@ -48,6 +57,27 @@ public class MarketoInputReaderTestIT extends MarketoBaseTestIT {
         props.connection.clientAccessId.setValue(USERID_SOAP);
         props.connection.secretKey.setValue(SECRETKEY_SOAP);
         props.connection.apiMode.setValue(SOAP);
+        props.connection.setupLayout();
+        props.mappingInput.setupProperties();
+        props.setupProperties();
+        props.schemaInput.setupProperties();
+        props.schemaInput.setupLayout();
+        props.includeTypes.setupProperties();
+        props.includeTypes.type.setValue(new ArrayList<String>());
+        props.excludeTypes.setupProperties();
+        props.excludeTypes.type.setValue(new ArrayList<String>());
+        props.setupLayout();
+
+        return props;
+    }
+
+    public TMarketoInputProperties getRESTProperties() {
+        TMarketoInputProperties props = new TMarketoInputProperties("test");
+        props.connection.setupProperties();
+        props.connection.endpoint.setValue(ENDPOINT_REST);
+        props.connection.clientAccessId.setValue(USERID_REST);
+        props.connection.secretKey.setValue(SECRETKEY_REST);
+        props.connection.apiMode.setValue(REST);
         props.connection.setupLayout();
         props.mappingInput.setupProperties();
         props.setupProperties();
@@ -177,6 +207,49 @@ public class MarketoInputReaderTestIT extends MarketoBaseTestIT {
             // LOG.debug("email: {}", reader.getCurrent().get(1));
         }
         assertTrue(((int) reader.getReturnValues().get(RETURN_NB_CALL)) > 1);
+    }
+
+    @Test
+    public void testLeadDynamicSchema() throws Exception {
+        TMarketoInputProperties props = getRESTProperties();
+        props.inputOperation.setValue(getLead);
+        props.leadKeyTypeREST.setValue(LeadKeyTypeREST.email);
+        props.batchSize.setValue(1);
+        props.afterInputOperation();
+        String email = "undx@undx.net";
+        props.leadKeyValue.setValue(email);
+        props.schemaInput.schema.setValue(getDynamicFieldsSchemaForLead(1));
+        reader = getReader(props);
+        assertTrue(reader.start());
+        IndexedRecord r = reader.getCurrent();
+        assertNotNull(r);
+        assertTrue(r.getSchema().getFields().size() > 6);
+        assertFalse(reader.advance());
+    }
+
+    @Test
+    public void testCustomObjectDynamicSchema() throws Exception {
+        TMarketoInputProperties props = getRESTProperties();
+        String coName = "smartphone_c";
+        String brand = "Nokia";
+        String models = "3110";
+        props.inputOperation.setValue(CustomObject);
+        props.customObjectAction.setValue(CustomObjectAction.get);
+        props.batchSize.setValue(1);
+        props.afterCustomObjectAction();
+        props.customObjectName.setValue(coName);
+        props.customObjectFilterType.setValue("model");
+        props.customObjectFilterValues.setValue(models);
+        Schema design = props.newSchema(MarketoConstants.getCustomObjectRecordSchema(), "dynamic",
+                Arrays.asList(getDynamicSchemaField(4)));
+        design.addProp(DiSchemaConstants.TALEND6_DYNAMIC_COLUMN_POSITION, "4");
+        props.schemaInput.schema.setValue(design);
+        reader = getReader(props);
+        assertTrue(reader.start());
+        IndexedRecord r = reader.getCurrent();
+        assertNotNull(r);
+        assertTrue(r.getSchema().getFields().size() > 6);
+        assertFalse(reader.advance());
     }
 
 }

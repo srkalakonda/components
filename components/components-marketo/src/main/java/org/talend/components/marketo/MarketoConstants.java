@@ -291,22 +291,4 @@ public class MarketoConstants {
                 .endRecord();
     }
 
-    /**
-     * Other stuff
-     */
-    public static Schema getSampleSchema() {
-        return SchemaBuilder.builder().record("getLeadActivity").fields() //
-                .name("ActivityDateTime")//
-                .prop(SchemaConstants.TALEND_COLUMN_PATTERN, DATETIME_PATTERN_SOAP)//
-                .prop(SchemaConstants.JAVA_CLASS_FLAG, Date.class.getCanonicalName())//
-                .type().nullable().longType().noDefault()//
-                //
-                .name("ActivityDateTime2")//
-                .prop(SchemaConstants.TALEND_COLUMN_PATTERN, DATETIME_PATTERN_SOAP)//
-                .prop(SchemaConstants.JAVA_CLASS_FLAG, Date.class.getCanonicalName()) //
-                .prop(SchemaConstants.TALEND_COLUMN_DB_LENGTH, "255")//
-                .type(AvroUtils._date()).noDefault()//
-                .endRecord();
-    }
-
 }

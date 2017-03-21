@@ -13,14 +13,9 @@
 
 package org.talend.components.netsuite.client;
 
-import static org.talend.components.netsuite.client.model.beans.Beans.getSimpleProperty;
-import static org.talend.components.netsuite.client.model.beans.Beans.toInitialUpper;
-
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -48,16 +43,13 @@ import org.talend.components.netsuite.client.model.CustomRecordTypeInfo;
 import org.talend.components.netsuite.client.model.FieldDesc;
 import org.talend.components.netsuite.client.model.RecordTypeDesc;
 import org.talend.components.netsuite.client.model.RecordTypeInfo;
-import org.talend.components.netsuite.client.model.RefType;
 import org.talend.components.netsuite.client.model.SearchRecordTypeDesc;
 import org.talend.components.netsuite.client.model.TypeDesc;
-import org.talend.components.netsuite.client.model.beans.BeanInfo;
-import org.talend.components.netsuite.client.model.beans.Beans;
-import org.talend.components.netsuite.client.model.customfield.CustomFieldRefType;
 import org.talend.components.netsuite.client.search.SearchQuery;
 import org.talend.daikon.NamedThing;
 import org.talend.daikon.SimpleNamedThing;
 import org.talend.daikon.exception.ExceptionContext;
+import org.talend.daikon.java8.Function;
 
 /**
  *
@@ -109,30 +101,15 @@ public abstract class NetSuiteClientService<PortT> {
     protected BasicMetaData basicMetaData;
 
     protected boolean customizationEnabled = true;
-
-    protected Map<String, CustomRecordTypeInfo> customRecordTypeMap = new HashMap<>();
-    protected boolean customRecordTypesLoaded = false;
-
-    protected Map<BasicRecordType, List<Object>> customFieldMap = new HashMap<>();
-    protected Map<RecordTypeDesc, Map<String, CustomFieldDesc>> recordCustomFieldMap = new HashMap<>();
-    protected boolean customFieldsLoaded = false;
-
-    protected Map<String, Map<String, CustomFieldDesc>> customRecordCustomFieldMap = new HashMap<>();
-
-    protected static final List<BasicRecordType> fieldCustomizationTypes = Collections.unmodifiableList(Arrays.asList(
-            BasicRecordType.CRM_CUSTOM_FIELD,
-            BasicRecordType.ENTITY_CUSTOM_FIELD,
-            BasicRecordType.ITEM_CUSTOM_FIELD,
-            BasicRecordType.OTHER_CUSTOM_FIELD,
-            BasicRecordType.TRANSACTION_BODY_CUSTOM_FIELD,
-            BasicRecordType.TRANSACTION_COLUMN_CUSTOM_FIELD
-    ));
+    protected CustomMetaDataSource customMetaDataSource;
 
     protected NetSuiteClientService() {
         super();
 
+        // Disable eager initialization of JAXBContext
         System.setProperty("com.sun.xml.bind.v2.runtime.JAXBContextImpl.fastBoot", "true");
-//        System.setProperty("com.sun.xml.bind.v2.bytecode.ClassTailor.noOptimize", "true");
+
+        customMetaDataSource = createDefaultCustomMetaDataSource();
     }
 
     public String getEndpointUrl() {
@@ -267,9 +244,20 @@ public abstract class NetSuiteClientService<PortT> {
         }
     }
 
+    public <T, R> R executeWithLock(Function<T, R> func, T param) {
+        lock.lock();
+        try {
+            return func.apply(param);
+        } finally {
+            lock.unlock();
+        }
+    }
+
     public BasicMetaData getBasicMetaData() {
         return basicMetaData;
     }
+
+    public abstract CustomMetaDataSource createDefaultCustomMetaDataSource();
 
     public Collection<RecordTypeInfo> getRecordTypes() {
         List<RecordTypeInfo> recordTypes = new ArrayList<>();
@@ -279,10 +267,8 @@ public abstract class NetSuiteClientService<PortT> {
             recordTypes.add(new RecordTypeInfo(recordType));
         }
 
-        retrieveCustomRecordTypes();
-
-        for (RecordTypeInfo recordTypeInfo : customRecordTypeMap.values()) {
-            recordTypes.add(recordTypeInfo);
+        if (customizationEnabled) {
+            recordTypes.addAll(customMetaDataSource.getCustomRecordTypes());
         }
 
         return recordTypes;
@@ -349,7 +335,7 @@ public abstract class NetSuiteClientService<PortT> {
         if (recordTypeInfo != null) {
             if (customizationEnabled) {
                 // Add custom fields
-                Map<String, CustomFieldDesc> customFieldMap = getRecordCustomFields(recordTypeInfo);
+                Map<String, CustomFieldDesc> customFieldMap = customMetaDataSource.getCustomFields(recordTypeInfo);
                 for (CustomFieldDesc fieldInfo : customFieldMap.values()) {
                     resultFieldDescList.add(fieldInfo);
                 }
@@ -364,13 +350,10 @@ public abstract class NetSuiteClientService<PortT> {
         if (recordType != null) {
             return new RecordTypeInfo(recordType);
         }
-
         if (customizationEnabled) {
-            retrieveCustomRecordTypes();
+            return customMetaDataSource.getCustomRecordType(typeName);
         }
-
-        RecordTypeInfo recordTypeInfo = customRecordTypeMap.get(typeName);
-        return recordTypeInfo;
+        return null;
     }
 
     public SearchRecordTypeDesc getSearchRecordType(String recordTypeName) {
@@ -397,172 +380,6 @@ public abstract class NetSuiteClientService<PortT> {
         }
         return null;
     }
-
-    protected Map<String, CustomFieldDesc> getRecordCustomFields(RecordTypeInfo recordTypeInfo) throws NetSuiteException {
-        lock.lock();
-        try {
-            RecordTypeDesc recordType = recordTypeInfo.getRecordType();
-
-            Map<String, CustomFieldDesc> recordCustomFields;
-
-            if (recordTypeInfo instanceof CustomRecordTypeInfo) {
-                retrieveCustomRecordCustomFields((CustomRecordTypeInfo) recordTypeInfo);
-
-                recordCustomFields = customRecordCustomFieldMap.get(recordTypeInfo.getName());
-
-            } else {
-                retrieveCustomFields();
-
-                recordCustomFields = recordCustomFieldMap.get(recordType.getType());
-
-                if (recordCustomFields == null) {
-                    recordCustomFields = new HashMap<>();
-
-                    for (BasicRecordType customizationType : fieldCustomizationTypes) {
-                        List<Object> customFieldList = customFieldMap.get(customizationType);
-
-                        Map<String, CustomFieldDesc> customFieldDescMap =
-                                createCustomFieldDescMap(recordType, customizationType, customFieldList);
-                        recordCustomFields.putAll(customFieldDescMap);
-                    }
-
-                    recordCustomFieldMap.put(recordType, recordCustomFields);
-                }
-            }
-
-            return recordCustomFields;
-
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    protected <T> Map<String, CustomFieldDesc> createCustomFieldDescMap(
-            RecordTypeDesc recordType, BasicRecordType customizationType, List<T> customFieldList) throws NetSuiteException {
-
-        Map<String, CustomFieldDesc> customFieldDescMap = new HashMap<>();
-
-        for (T customField : customFieldList) {
-
-            CustomFieldRefType customFieldRefType = basicMetaData
-                    .getCustomFieldRefType(recordType.getType(), customizationType, customField);
-
-            if (customFieldRefType != null) {
-                CustomFieldDesc customFieldInfo = new CustomFieldDesc();
-
-                String internalId = (String) getSimpleProperty(customField, "internalId");
-                String scriptId = (String) getSimpleProperty(customField, "scriptId");
-                String label = (String) getSimpleProperty(customField, "label");
-
-                NsRef customizationRef = new NsRef();
-                customizationRef.setRefType(RefType.CUSTOMIZATION_REF);
-                customizationRef.setType(customizationType.getType());
-                customizationRef.setName(label);
-                customizationRef.setInternalId(internalId);
-                customizationRef.setScriptId(scriptId);
-
-                customFieldInfo.setRef(customizationRef);
-                customFieldInfo.setName(customizationRef.getScriptId());
-                customFieldInfo.setCustomFieldType(customFieldRefType);
-
-                TypeDesc typeDesc = basicMetaData.getTypeInfo(customFieldRefType.getTypeName());
-                BeanInfo beanInfo = Beans.getBeanInfo(typeDesc.getTypeClass());
-                Class<?> valueType = beanInfo.getProperty("value").getWriteType();
-                customFieldInfo.setValueType(valueType);
-
-                customFieldInfo.setNullable(true);
-
-                customFieldDescMap.put(customFieldInfo.getName(), customFieldInfo);
-            }
-        }
-
-        return customFieldDescMap;
-    }
-
-    protected void retrieveCustomRecordTypes() throws NetSuiteException {
-        try {
-            lock.lock();
-
-            if (!customRecordTypesLoaded) {
-                List<NsRef> customTypes = new ArrayList<>();
-
-                List<NsRef> customRecordTypes = retrieveCustomizationIds(
-                        BasicRecordType.CUSTOM_RECORD_TYPE);
-                customTypes.addAll(customRecordTypes);
-
-                List<NsRef> customTransactionTypes = retrieveCustomizationIds(
-                        BasicRecordType.CUSTOM_TRANSACTION_TYPE);
-                customTypes.addAll(customTransactionTypes);
-
-                for (NsRef customizationRef : customTypes) {
-                    String recordType = customizationRef.getType();
-                    RecordTypeDesc recordTypeDesc = null;
-                    BasicRecordType basicRecordType = BasicRecordType.getByType(recordType);
-                    if (basicRecordType != null) {
-                        recordTypeDesc = basicMetaData.getRecordType(toInitialUpper(basicRecordType.getSearchType()));
-                    }
-
-                    CustomRecordTypeInfo customRecordTypeInfo = new CustomRecordTypeInfo(
-                            customizationRef.getScriptId(), recordTypeDesc, customizationRef);
-                    customRecordTypeMap.put(customRecordTypeInfo.getName(), customRecordTypeInfo);
-                }
-
-                customRecordTypesLoaded = true;
-            }
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    protected void retrieveCustomFields() throws NetSuiteException {
-        lock.lock();
-        try {
-            if (!customFieldsLoaded) {
-                Map<BasicRecordType, List<NsRef>> fieldCustomizationRefs = new HashMap<>(32);
-                for (BasicRecordType customizationType : fieldCustomizationTypes) {
-                    List<NsRef> customizationRefs = retrieveCustomizationIds(customizationType);
-                    fieldCustomizationRefs.put(customizationType, customizationRefs);
-                }
-
-                for (BasicRecordType customizationType : fieldCustomizationTypes) {
-                    List<NsRef> customizationRefs = fieldCustomizationRefs.get(customizationType);
-                    List<Object> fieldCustomizationList = retrieveCustomizations(customizationRefs);
-                    customFieldMap.put(customizationType, fieldCustomizationList);
-                }
-
-                customFieldsLoaded = true;
-            }
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    protected void retrieveCustomRecordCustomFields(CustomRecordTypeInfo recordTypeInfo) throws NetSuiteException {
-        lock.lock();
-        try {
-            Map<String, CustomFieldDesc> recordCustomFieldMap = customRecordCustomFieldMap.get(recordTypeInfo.getName());
-
-            if (recordCustomFieldMap != null) {
-                return;
-            }
-
-            recordCustomFieldMap = retrieveCustomRecordCustomFields(
-                    recordTypeInfo.getRecordType(), recordTypeInfo.getRef());
-
-            customRecordCustomFieldMap.put(recordTypeInfo.getName(), recordCustomFieldMap);
-
-        } finally {
-            lock.unlock();
-        }
-    }
-
-    protected abstract List<NsRef> retrieveCustomizationIds(final BasicRecordType type) throws NetSuiteException;
-
-    protected abstract <T> List<T> retrieveCustomizations(final List<NsRef> nsCustomizationRefs)
-            throws NetSuiteException;
-
-    protected abstract Map<String, CustomFieldDesc> retrieveCustomRecordCustomFields(
-            final RecordTypeDesc recordType, final NsRef nsCustomizationRef) throws NetSuiteException;
 
     protected <R> R executeUsingLogin(PortOperation<R, PortT> op) throws NetSuiteException {
         lock.lock();
@@ -842,4 +659,23 @@ public abstract class NetSuiteClientService<PortT> {
             }
         }
     }
+
+    public static class EmptyCustomMetaDataSource implements CustomMetaDataSource {
+
+        @Override
+        public Collection<CustomRecordTypeInfo> getCustomRecordTypes() {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public CustomRecordTypeInfo getCustomRecordType(String typeName) {
+            return null;
+        }
+
+        @Override
+        public Map<String, CustomFieldDesc> getCustomFields(RecordTypeInfo recordTypeInfo) {
+            return Collections.emptyMap();
+        }
+    }
+
 }

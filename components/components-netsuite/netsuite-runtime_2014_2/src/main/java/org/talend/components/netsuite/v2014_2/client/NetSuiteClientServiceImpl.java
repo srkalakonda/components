@@ -30,19 +30,16 @@ import javax.xml.ws.soap.SOAPFaultException;
 
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.cxf.feature.LoggingFeature;
+import org.talend.components.netsuite.client.CustomMetaDataSource;
 import org.talend.components.netsuite.client.NetSuiteClientService;
 import org.talend.components.netsuite.client.NetSuiteCredentials;
 import org.talend.components.netsuite.client.NetSuiteException;
 import org.talend.components.netsuite.client.NsPreferences;
 import org.talend.components.netsuite.client.NsReadResponse;
-import org.talend.components.netsuite.client.NsRef;
 import org.talend.components.netsuite.client.NsSearchPreferences;
 import org.talend.components.netsuite.client.NsSearchResult;
 import org.talend.components.netsuite.client.NsStatus;
 import org.talend.components.netsuite.client.NsWriteResponse;
-import org.talend.components.netsuite.client.model.BasicRecordType;
-import org.talend.components.netsuite.client.model.CustomFieldDesc;
-import org.talend.components.netsuite.client.model.RecordTypeDesc;
 import org.talend.components.netsuite.v2014_2.client.model.BasicMetaDataImpl;
 
 import com.netsuite.webservices.v2014_2.platform.ExceededRequestSizeFault;
@@ -102,6 +99,8 @@ public class NetSuiteClientServiceImpl extends NetSuiteClientService<NetSuitePor
         super();
 
         basicMetaData = BasicMetaDataImpl.getInstance();
+
+        customizationEnabled = false;
     }
 
     @Override
@@ -300,6 +299,11 @@ public class NetSuiteClientServiceImpl extends NetSuiteClientService<NetSuitePor
                 return toNsWriteResponseList(writeResponseList);
             }
         });
+    }
+
+    @Override
+    public CustomMetaDataSource createDefaultCustomMetaDataSource() {
+        return new EmptyCustomMetaDataSource();
     }
 
     protected void doLogout() throws NetSuiteException {
@@ -565,20 +569,5 @@ public class NetSuiteClientServiceImpl extends NetSuiteClientService<NetSuitePor
         nsDetail.setCode(detail.getCode().value());
         nsDetail.setMessage(detail.getMessage());
         return nsDetail;
-    }
-
-    protected List<NsRef> retrieveCustomizationIds(final BasicRecordType type) throws NetSuiteException {
-        return Collections.emptyList();
-    }
-
-    protected <T> List<T> retrieveCustomizations(final List<NsRef> nsCustomizationRefs) throws NetSuiteException {
-        return Collections.emptyList();
-    }
-
-    @Override
-    protected Map<String, CustomFieldDesc> retrieveCustomRecordCustomFields(
-            RecordTypeDesc recordType, NsRef nsCustomizationRef) throws NetSuiteException {
-
-        return Collections.emptyMap();
     }
 }

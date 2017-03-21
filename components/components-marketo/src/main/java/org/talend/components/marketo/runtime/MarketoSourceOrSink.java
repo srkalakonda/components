@@ -3,8 +3,10 @@ package org.talend.components.marketo.runtime;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.avro.Schema;
+import org.apache.avro.Schema.Field;
 import org.apache.avro.generic.IndexedRecord;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -28,6 +30,7 @@ import org.talend.components.marketo.tmarketoinput.TMarketoInputProperties.Custo
 import org.talend.components.marketo.tmarketoinput.TMarketoInputProperties.InputOperation;
 import org.talend.daikon.NamedThing;
 import org.talend.daikon.SimpleNamedThing;
+import org.talend.daikon.di.DiSchemaConstants;
 import org.talend.daikon.i18n.GlobalI18N;
 import org.talend.daikon.i18n.I18nMessages;
 import org.talend.daikon.properties.ValidationResult;
@@ -138,6 +141,79 @@ public class MarketoSourceOrSink implements SourceOrSink, MarketoSourceOrSinkSch
         if (StringUtils.isEmpty(customObjectName))
             return null;
         return getEndpointSchema(null, customObjectName);
+    }
+
+    /**
+     * Retrieve schema for Leads or CustomObjects.
+     *
+     * @param the ObjectName to get schema. If blank, assumes it's for Lead fields. Otherwise ObjectName should be the
+     * CustomObject API's name.
+     * 
+     * @return the schema for the given CustomObject or all Lead fields.
+     * 
+     */
+    public Schema getDynamicSchema(String objectName, Schema design) throws IOException {
+        // check if dynamic
+        String strdynpos = design.getProp(DiSchemaConstants.TALEND6_DYNAMIC_COLUMN_POSITION);
+        if (strdynpos == null)
+            return design;
+        // check object managed
+
+        // split existing fields according Schema dynamic column's position.
+        int dynPos = Integer.parseInt(strdynpos);
+        List<Field> beforeFields = new ArrayList<>();
+        List<Field> afterFields = new ArrayList<>();
+        List<String> existingFieldNames = new ArrayList<>();
+        for (Field f : design.getFields()) {
+            existingFieldNames.add(f.name());
+            Field nf = new Field(f.name(), f.schema(), f.doc(), f.defaultVal());
+            nf.getObjectProps().putAll(f.getObjectProps());
+            for (Map.Entry<String, Object> entry : f.getObjectProps().entrySet()) {
+                nf.addProp(entry.getKey(), entry.getValue());
+            }
+            if (f.pos() == dynPos)
+                continue;
+            if (f.pos() < dynPos) {
+                beforeFields.add(nf);
+            } else {
+                afterFields.add(nf);
+            }
+        }
+        List<Field> objectFields = new ArrayList<>();
+        List<Field> resultFields = new ArrayList<>();
+        resultFields.addAll(beforeFields);
+        // will fetch fields...
+        MarketoRESTClient client = (MarketoRESTClient) getClientService(null);
+        if (StringUtils.isEmpty(objectName)) {
+            objectFields = client.getAllLeadFields();
+        } else {
+            objectFields = getSchemaFieldsList(getEndpointSchema(null, objectName));
+        }
+        //
+        for (Field f : objectFields) {
+            if (!existingFieldNames.contains(f.name())) // test if field isn't already in the schema
+                resultFields.add(f);
+        }
+        resultFields.addAll(afterFields);
+        //
+        Schema resultSchema = Schema.createRecord(design.getName(), design.getDoc(), design.getNamespace(), design.isError());
+        resultSchema.getObjectProps().putAll(design.getObjectProps());
+        resultSchema.setFields(resultFields);
+
+        return resultSchema;
+    }
+
+    public static List<Field> getSchemaFieldsList(Schema schema) {
+        List<Field> result = new ArrayList<>();
+        for (Field f : schema.getFields()) {
+            Field nf = new Field(f.name(), f.schema(), f.doc(), f.defaultVal());
+            nf.getObjectProps().putAll(f.getObjectProps());
+            for (Map.Entry<String, Object> entry : f.getObjectProps().entrySet()) {
+                nf.addProp(entry.getKey(), entry.getValue());
+            }
+            result.add(nf);
+        }
+        return result;
     }
 
     public static ValidationResult validateConnection(MarketoProvideConnectionProperties properties) {

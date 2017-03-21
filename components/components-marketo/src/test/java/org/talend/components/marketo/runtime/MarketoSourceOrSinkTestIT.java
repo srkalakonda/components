@@ -20,15 +20,23 @@ import org.talend.daikon.avro.SchemaConstants;
 import org.talend.daikon.properties.ValidationResult;
 import org.talend.daikon.properties.ValidationResult.Result;
 
-public class MarketoSourceOrSinkTestIT {
+public class MarketoSourceOrSinkTestIT extends MarketoBaseTestIT {
 
     MarketoSourceOrSink sos;
+
+    TMarketoInputProperties props;
 
     private transient static final Logger LOG = LoggerFactory.getLogger(MarketoSourceOrSinkTestIT.class);
 
     @Before
     public void setUp() throws Exception {
         sos = new MarketoSourceOrSink();
+        props = new TMarketoInputProperties("test");
+        props.connection.setupProperties();
+        props.setupProperties();
+        props.connection.endpoint.setValue(MarketoBaseTestIT.ENDPOINT_REST);
+        props.connection.clientAccessId.setValue(MarketoBaseTestIT.USERID_REST);
+        props.connection.secretKey.setValue(MarketoBaseTestIT.SECRETKEY_REST);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -97,5 +105,50 @@ public class MarketoSourceOrSinkTestIT {
         props.connection.endpoint.setValue("https://www.marketo.com");
         sos.initialize(null, props);
         assertEquals("Marketo SOAP API Client [null].", sos.getClientService(null).toString());
+    }
+
+    /*
+     * Dynamic fields feature
+     */
+
+    @Test
+    public void testDynamicFieldsPositions() throws Exception {
+        // between start and end of fields
+        int pos = 1;
+        Schema s = getDynamicFieldsSchemaForLead(pos);
+        assertEquals(7, s.getFields().size());
+        assertEquals(pos, s.getField("DynamicColumn").pos());
+        pos = 4;
+        s = getDynamicFieldsSchemaForLead(pos);
+        assertEquals(7, s.getFields().size());
+        assertEquals(pos, s.getField("DynamicColumn").pos());
+        // at the start of fields
+        pos = 0;
+        s = getDynamicFieldsSchemaForLead(0);
+        assertEquals(7, s.getFields().size());
+        assertEquals(pos, s.getField("DynamicColumn").pos());
+        assertEquals("id", s.getFields().get(1).name());
+        // at the end of fields
+        pos = 6;
+        s = getDynamicFieldsSchemaForLead(6);
+        assertEquals(7, s.getFields().size());
+        assertEquals(pos, s.getField("DynamicColumn").pos());
+        assertEquals("id", s.getFields().get(0).name());
+    }
+
+    @Test
+    public void testGetDynamicSchema() throws Exception {
+        int pos = 1;
+        props.schemaInput.schema.setValue(getDynamicFieldsSchemaForLead(pos));
+        sos.initialize(null, props);
+        Schema design = getDynamicFieldsSchemaForLead(pos);
+        Schema dynamic = sos.getDynamicSchema("dummy", design);
+        assertNotNull(dynamic);
+        assertTrue(dynamic.getFields().size() > design.getFields().size());
+        int dynOffset = dynamic.getFields().size() - design.getFields().size();
+        assertEquals(0, dynamic.getField("id").pos());
+        assertEquals(2 + dynOffset, dynamic.getField("email").pos());
+        assertEquals(3 + dynOffset, dynamic.getField("firstName").pos());
+        assertEquals(4 + dynOffset, dynamic.getField("lastName").pos());
     }
 }

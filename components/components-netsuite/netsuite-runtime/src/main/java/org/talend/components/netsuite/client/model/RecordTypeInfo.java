@@ -42,6 +42,10 @@ public class RecordTypeInfo {
         return recordType;
     }
 
+    public RefType getRefType() {
+        return RefType.RECORD_REF;
+    }
+
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("RecordTypeInfo{");

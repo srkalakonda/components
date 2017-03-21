@@ -26,6 +26,7 @@ import org.talend.components.api.exception.ComponentException;
 import org.talend.components.netsuite.client.NetSuiteClientService;
 import org.talend.components.netsuite.client.NetSuiteException;
 import org.talend.components.netsuite.client.model.CustomFieldDesc;
+import org.talend.components.netsuite.client.model.CustomRecordTypeInfo;
 import org.talend.components.netsuite.client.model.FieldDesc;
 import org.talend.components.netsuite.client.model.RecordTypeInfo;
 import org.talend.components.netsuite.client.model.RefType;
@@ -149,7 +150,9 @@ public class NetSuiteDatasetRuntimeImpl implements NetSuiteDatasetRuntime {
     @Override
     public Schema getSchemaForDelete(String typeName) {
         try {
-            final TypeDesc typeDesc = clientService.getTypeInfo(RefType.RECORD_REF.getTypeName());
+            final RecordTypeInfo referencedRecordTypeInfo = clientService.getRecordType(typeName);
+            final RefType refType = referencedRecordTypeInfo.getRefType();
+            final TypeDesc typeDesc = clientService.getTypeInfo(refType.getTypeName());
             return NetSuiteDatasetRuntimeImpl.inferSchemaForType(typeDesc.getTypeName(), typeDesc.getFields());
         } catch (NetSuiteException e) {
             throw new ComponentException(e);

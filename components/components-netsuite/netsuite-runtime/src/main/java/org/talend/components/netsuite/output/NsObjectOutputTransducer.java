@@ -49,11 +49,7 @@ public class NsObjectOutputTransducer extends NsObjectTransducer {
     protected RecordSource recordSource;
 
     protected TypeDesc typeDesc;
-    protected Map<String, FieldDesc> fieldMap;
     protected RecordTypeInfo recordTypeInfo;
-    protected BeanInfo beanInfo;
-    protected RefType refType;
-    protected String referencedTypeName;
 
     public NsObjectOutputTransducer(NetSuiteClientService<?> clientService, String typeName) {
         super(clientService);
@@ -82,26 +78,16 @@ public class NsObjectOutputTransducer extends NsObjectTransducer {
             return;
         }
 
+        recordTypeInfo = clientService.getRecordType(typeName);
         if (reference) {
-            referencedTypeName = typeName;
-            recordTypeInfo = clientService.getRecordType(referencedTypeName);
-            if (recordTypeInfo instanceof CustomRecordTypeInfo) {
-                refType = RefType.CUSTOMIZATION_REF;
-            } else {
-                refType = RefType.RECORD_REF;
-            }
-            typeDesc = clientService.getTypeInfo(refType.getTypeName());
+            typeDesc = clientService.getTypeInfo(recordTypeInfo.getRefType().getTypeName());
         } else {
-            recordTypeInfo = clientService.getRecordType(typeName);
             typeDesc = clientService.getTypeInfo(typeName);
 
             if (recordSource == null) {
                 recordSource = new DefaultRecordSource(clientService);
             }
         }
-
-        beanInfo = Beans.getBeanInfo(typeDesc.getTypeClass());
-        fieldMap = typeDesc.getFieldMap();
     }
 
     public NsRef getRef(IndexedRecord indexedRecord) {
@@ -120,17 +106,12 @@ public class NsObjectOutputTransducer extends NsObjectTransducer {
         }
 
         NsRef ref = new NsRef();
-
+        ref.setRefType(recordTypeInfo.getRefType());
         if (recordTypeInfo instanceof CustomRecordTypeInfo) {
-            ref.setRefType(RefType.CUSTOMIZATION_REF);
-
             Schema.Field scriptIdField = schema.getField("ScriptId");
             String scriptId = (String) indexedRecord.get(scriptIdField.pos());
             ref.setScriptId(scriptId);
-        } else {
-            ref.setRefType(RefType.RECORD_REF);
         }
-
         ref.setType(recordTypeInfo.getRecordType().getType());
         ref.setInternalId(internalId);
 
@@ -139,6 +120,9 @@ public class NsObjectOutputTransducer extends NsObjectTransducer {
 
     public Object write(IndexedRecord indexedRecord) {
         prepare();
+
+        Map<String, FieldDesc> fieldMap = typeDesc.getFieldMap();
+        BeanInfo beanInfo = Beans.getBeanInfo(typeDesc.getTypeClass());
 
         Schema schema = indexedRecord.getSchema();
 
@@ -191,7 +175,7 @@ public class NsObjectOutputTransducer extends NsObjectTransducer {
             }
 
             if (reference) {
-                if (refType == RefType.RECORD_REF) {
+                if (recordTypeInfo.getRefType() == RefType.RECORD_REF) {
                     FieldDesc recTypeFieldDesc = typeDesc.getField("Type");
                     RecordTypeDesc recordTypeDesc = recordTypeInfo.getRecordType();
                     writeSimpleField(nsObject, recTypeFieldDesc.asSimple(), false, nullFieldNames, recordTypeDesc.getType());

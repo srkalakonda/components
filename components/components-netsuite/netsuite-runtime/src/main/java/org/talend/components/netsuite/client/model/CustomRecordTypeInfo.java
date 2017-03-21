@@ -38,6 +38,10 @@ public class CustomRecordTypeInfo extends RecordTypeInfo {
         this.ref = ref;
     }
 
+    public RefType getRefType() {
+        return RefType.CUSTOMIZATION_REF;
+    }
+
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("CustomRecordTypeInfo{");

@@ -249,7 +249,6 @@ public class TMarketoOutputProperties extends MarketoComponentProperties {
     }
 
     public void afterApiMode() {
-        LOG.error("[TMarketoOutput] afterApiMode");
         if (connection.apiMode.getValue().equals(APIMode.SOAP)) {
             schemaInput.schema.setValue(MarketoConstants.getSOAPOuputSchemaForSyncLead());
         } else {

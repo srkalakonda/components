@@ -69,6 +69,14 @@ public class FieldDescription {
             return name;
         }
 
+        public ApiFieldName() {
+        }
+
+        public ApiFieldName(String name, Boolean readOnly) {
+            this.name = name;
+            this.readOnly = readOnly;
+        }
+
         public void setName(String name) {
             this.name = name;
         }
@@ -203,18 +211,19 @@ public class FieldDescription {
             LOG.warn("Non managed type : {}. for {}. Defaulting to String.", getDataType(), this);
         }
         Field f = new Field(fname, fs, getDisplayName(), (Object) null);
+        f.addProp(SchemaConstants.TALEND_COLUMN_DB_COLUMN_NAME, getName());
         if (getLength() != null)
-            f.addProp(SchemaConstants.TALEND_COLUMN_DB_LENGTH, getLength());
-        if (fs.equals(AvroUtils._date()))
+            f.addProp(SchemaConstants.TALEND_COLUMN_DB_LENGTH, getLength().toString());
+        if (fs.equals(AvroUtils._date())) {
             f.addProp(SchemaConstants.TALEND_COLUMN_PATTERN, MarketoConstants.DATETIME_PATTERN_REST);
+            f.addProp(SchemaConstants.JAVA_CLASS_FLAG, "java.util.Date");
+        }
         if (updateable != null && !updateable)
             f.addProp(SchemaConstants.TALEND_IS_LOCKED, "true");
-
         //
         if (getId() != null)
-            f.addProp("mktoId", getId());
+            f.addProp("mktoId", getId().toString());
         f.addProp("mktoType", getDataType());
-
         return f;
     }
 
@@ -228,6 +237,8 @@ public class FieldDescription {
     public static Schema getSchemaForThisFields(String schemaName, FieldDescription[] fields, String[] keys) {
         Schema schema = Schema.createRecord(schemaName, "", "", false);
         List<Field> fieldList = new ArrayList<>();
+        if (fields == null)
+            return null;
         for (FieldDescription field : fields) {
             Field f = field.toAvroField();
             for (String key : keys) {

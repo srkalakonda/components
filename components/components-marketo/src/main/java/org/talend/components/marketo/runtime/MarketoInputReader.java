@@ -115,7 +115,6 @@ public class MarketoInputReader extends AbstractBoundedReader<IndexedRecord> {
         case getMultipleLeads:
             if (isDynamic)
                 adaptSchemaToDynamic();
-
             return client.getMultipleLeads(properties, position);
         case getLeadActivity:
             return client.getLeadActivity(properties, position);

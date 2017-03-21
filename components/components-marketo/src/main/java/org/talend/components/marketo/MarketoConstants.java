@@ -23,7 +23,6 @@ import org.talend.daikon.avro.SchemaConstants;
 
 /**
  * Common shared schemas and constants
- * 
  */
 public class MarketoConstants {
 
@@ -127,7 +126,6 @@ public class MarketoConstants {
      * At","dataType":"datetime","updateable":false},{"name":"acquiredAt","displayName":"Acquired
      * at","dataType":"date","updateable":true},{"name":"brand","displayName":"Brand","dataType":"string","length":255,"updateable":true},{"name":"customerId","displayName":"Customer
      * Id","dataType":"integer","updateable":true},{"name":"model","displayName":"Model","dataType":"string","length":255,"updateable":true}]}],"success":true}
-     *
      */
     public static Schema getCustomObjectDescribeSchema() {
         return record("CustomObject").fields()//

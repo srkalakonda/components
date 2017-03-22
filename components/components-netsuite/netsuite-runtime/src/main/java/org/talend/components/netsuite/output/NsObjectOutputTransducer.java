@@ -98,23 +98,32 @@ public class NsObjectOutputTransducer extends NsObjectTransducer {
     }
 
     protected NsRef getRef(Schema schema, IndexedRecord indexedRecord) {
-        Schema.Field idField = schema.getField("InternalId");
-        String internalId = (String) indexedRecord.get(idField.pos());
+        if (recordTypeInfo == null) {
+            return null;
+        }
 
-        if (internalId == null || recordTypeInfo == null) {
+        Schema.Field internalIdField = getNsFieldByName(schema, "internalId");
+        String internalId = internalIdField != null ? (String) indexedRecord.get(internalIdField.pos()) : null;
+        if (internalId == null) {
+            return null;
+        }
+
+        Schema.Field externalIdField = getNsFieldByName(schema, "externalId");
+        String externalId = externalIdField != null ? (String) indexedRecord.get(externalIdField.pos()) : null;
+        if (internalId == null && externalId == null) {
             return null;
         }
 
         NsRef ref = new NsRef();
         ref.setRefType(recordTypeInfo.getRefType());
-        if (recordTypeInfo instanceof CustomRecordTypeInfo) {
-            Schema.Field scriptIdField = schema.getField("ScriptId");
-            String scriptId = (String) indexedRecord.get(scriptIdField.pos());
-            ref.setScriptId(scriptId);
-        }
         ref.setType(recordTypeInfo.getRecordType().getType());
         ref.setInternalId(internalId);
-
+        ref.setExternalId(externalId);
+        if (recordTypeInfo instanceof CustomRecordTypeInfo) {
+            Schema.Field scriptIdField = getNsFieldByName(schema, "scriptId");
+            String scriptId = scriptIdField != null ? (String) indexedRecord.get(scriptIdField.pos()) : null;
+            ref.setScriptId(scriptId);
+        }
         return ref;
     }
 
@@ -155,14 +164,15 @@ public class NsObjectOutputTransducer extends NsObjectTransducer {
             }
 
             for (Schema.Field field : schema.getFields()) {
-                String fieldName = field.name();
-                FieldDesc fieldDesc = fieldMap.get(fieldName);
+                String nsFieldName = getNsFieldName(field);
 
+                FieldDesc fieldDesc = fieldMap.get(nsFieldName);
                 if (fieldDesc == null) {
                     continue;
                 }
 
                 Object value = indexedRecord.get(field.pos());
+
                 writeField(nsObject, fieldDesc, customFieldMap, false, nullFieldNames, value);
             }
 
@@ -176,7 +186,7 @@ public class NsObjectOutputTransducer extends NsObjectTransducer {
 
             if (reference) {
                 if (recordTypeInfo.getRefType() == RefType.RECORD_REF) {
-                    FieldDesc recTypeFieldDesc = typeDesc.getField("Type");
+                    FieldDesc recTypeFieldDesc = typeDesc.getField("type");
                     RecordTypeDesc recordTypeDesc = recordTypeInfo.getRecordType();
                     writeSimpleField(nsObject, recTypeFieldDesc.asSimple(), false, nullFieldNames, recordTypeDesc.getType());
                 }

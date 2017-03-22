@@ -42,6 +42,8 @@ import org.talend.daikon.avro.AvroUtils;
 import org.talend.daikon.avro.SchemaConstants;
 import org.talend.daikon.di.DiSchemaConstants;
 
+import static org.talend.components.netsuite.client.model.beans.Beans.toInitialUpper;
+
 /**
  *
  */
@@ -184,14 +186,16 @@ public class NetSuiteDatasetRuntimeImpl implements NetSuiteDatasetRuntime {
         List<Schema.Field> fields = new ArrayList<>();
 
         for (FieldDesc fieldDesc : fieldDescList) {
+            final String fieldName = fieldDesc.getName();
+            final String avroFieldName = toInitialUpper(fieldName);
 
-            Schema.Field avroField = new Schema.Field(fieldDesc.getName(),
+            Schema.Field avroField = new Schema.Field(avroFieldName,
                     inferSchemaForField(fieldDesc), null, (Object) null);
 
             // Add some Talend6 custom properties to the schema.
             Schema avroFieldSchema = AvroUtils.unwrapIfNullable(avroField.schema());
 
-            avroField.addProp(DiSchemaConstants.TALEND6_COLUMN_ORIGINAL_DB_COLUMN_NAME, fieldDesc.getInternalName());
+            avroField.addProp(DiSchemaConstants.TALEND6_COLUMN_ORIGINAL_DB_COLUMN_NAME, fieldDesc.getName());
 
             if (AvroUtils.isSameType(avroFieldSchema, AvroUtils._string())) {
                 if (fieldDesc.getLength() != 0) {

@@ -326,7 +326,7 @@ public abstract class NetSuiteClientService<PortT> {
         // Add basic fields except field list containers (custom field list, null field list)
         for (FieldDesc fieldDesc : baseFieldDescList) {
             String fieldName = fieldDesc.getName();
-            if (fieldName.equals("CustomFieldList") || fieldName.equals("NullFieldList")) {
+            if (fieldName.equals("customFieldList") || fieldName.equals("nullFieldList")) {
                 continue;
             }
             resultFieldDescList.add(fieldDesc);

@@ -17,6 +17,7 @@ import static org.talend.components.netsuite.client.model.beans.Beans.getEnumAcc
 import static org.talend.components.netsuite.client.model.beans.Beans.getProperty;
 import static org.talend.components.netsuite.client.model.beans.Beans.getSimpleProperty;
 import static org.talend.components.netsuite.client.model.beans.Beans.setSimpleProperty;
+import static org.talend.components.netsuite.client.model.beans.Beans.toInitialLower;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -101,7 +102,7 @@ public abstract class NsObjectTransducer {
         if (dynamicPosProp != null) {
             Set<String> designFieldNames = new HashSet<>(designSchema.getFields().size());
             for (Schema.Field field : designSchema.getFields()) {
-                String fieldName = field.name();
+                String fieldName = getNsFieldName(field);
                 designFieldNames.add(fieldName);
             }
 
@@ -128,7 +129,8 @@ public abstract class NsObjectTransducer {
                     }
 
                     // Add fields of design schema
-                    Schema.Field avroField = new Schema.Field(field.name(), field.schema(), null, field.defaultVal());
+                    Schema.Field avroField = new Schema.Field(
+                            field.name(), field.schema(), null, field.defaultVal());
                     Map<String, Object> fieldProps = field.getObjectProps();
                     for (String propName : fieldProps.keySet()) {
                         Object propValue = fieldProps.get(propName);
@@ -174,26 +176,25 @@ public abstract class NsObjectTransducer {
     }
 
     protected Map<String, Object> getMapView(Object nsObject, Schema schema, TypeDesc typeDesc) {
-        BeanInfo beanInfo = Beans.getBeanInfo(typeDesc.getTypeClass());
-
         Map<String, Object> valueMap = new HashMap<>();
 
+        BeanInfo beanInfo = Beans.getBeanInfo(typeDesc.getTypeClass());
         Map<String, FieldDesc> fieldMap = typeDesc.getFieldMap();
 
         Map<String, CustomFieldDesc> customFieldMap = new HashMap<>();
         for (Schema.Field field : schema.getFields()) {
-            String fieldName = field.name();
-            FieldDesc fieldDesc = fieldMap.get(fieldName);
+            String nsFieldName = getNsFieldName(field);
+            FieldDesc fieldDesc = fieldMap.get(nsFieldName);
 
             if (fieldDesc == null) {
                 continue;
             }
 
             if (fieldDesc instanceof CustomFieldDesc) {
-                customFieldMap.put(fieldName, (CustomFieldDesc) fieldDesc);
+                customFieldMap.put(nsFieldName, (CustomFieldDesc) fieldDesc);
             } else {
-                Object value = getSimpleProperty(nsObject, fieldDesc.getInternalName());
-                valueMap.put(fieldName, value);
+                Object value = getSimpleProperty(nsObject, fieldDesc.getName());
+                valueMap.put(nsFieldName, value);
             }
         }
 
@@ -246,7 +247,6 @@ public abstract class NsObjectTransducer {
         NsRef ref = fieldDesc.getRef();
         CustomFieldRefType customFieldRefType = fieldDesc.getCustomFieldType();
 
-
         Object customFieldListWrapper = getSimpleProperty(nsObject, "customFieldList");
         if (customFieldListWrapper == null) {
             customFieldListWrapper = clientService.getBasicMetaData().createInstance("CustomFieldList");
@@ -262,7 +262,7 @@ public abstract class NsObjectTransducer {
         if (targetValue == null) {
             if (replace && customField != null && customFieldList != null) {
                 customFieldList.remove(customField);
-                nullFieldNames.add(fieldDesc.getInternalName());
+                nullFieldNames.add(fieldDesc.getName());
             }
         } else {
             if (customField == null) {
@@ -288,11 +288,11 @@ public abstract class NsObjectTransducer {
 
         if (targetValue == null) {
             if (replace) {
-                setSimpleProperty(nsObject, fieldDesc.getInternalName(), null);
-                nullFieldNames.add(fieldDesc.getInternalName());
+                setSimpleProperty(nsObject, fieldDesc.getPropertyName(), null);
+                nullFieldNames.add(fieldDesc.getName());
             }
         } else {
-            setSimpleProperty(nsObject, fieldDesc.getInternalName(), targetValue);
+            setSimpleProperty(nsObject, fieldDesc.getPropertyName(), targetValue);
         }
     }
 
@@ -359,6 +359,21 @@ public abstract class NsObjectTransducer {
             return new EnumValueConverter<>(enumClass, getEnumAccessor(enumClass));
         } else if (!valueClass.isPrimitive()) {
             return new JsonValueConverter<>(objectMapper, valueClass);
+        }
+        return null;
+    }
+
+    public static String getNsFieldName(Schema.Field field) {
+        String name = field.getProp(DiSchemaConstants.TALEND6_COLUMN_ORIGINAL_DB_COLUMN_NAME);
+        return name != null ? toInitialLower(name) : toInitialLower(field.name());
+    }
+
+    public static Schema.Field getNsFieldByName(Schema schema, String fieldName) {
+        for (Schema.Field field : schema.getFields()) {
+            String nsFieldName = getNsFieldName(field);
+            if (fieldName.equals(nsFieldName)) {
+                return field;
+            }
         }
         return null;
     }

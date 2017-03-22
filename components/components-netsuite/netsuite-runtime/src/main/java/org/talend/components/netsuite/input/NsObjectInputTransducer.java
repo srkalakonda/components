@@ -54,15 +54,16 @@ public class NsObjectInputTransducer extends NsObjectTransducer {
         GenericRecord indexedRecord = new GenericData.Record(runtimeSchema);
 
         for (Schema.Field field : runtimeSchema.getFields()) {
-            String fieldName = field.name();
-            FieldDesc fieldDesc = fieldMap.get(fieldName);
+            String nsFieldName = getNsFieldName(field);
 
+            FieldDesc fieldDesc = fieldMap.get(nsFieldName);
             if (fieldDesc == null) {
                 continue;
             }
 
             Object value = readField(mapView, fieldDesc);
-            indexedRecord.put(fieldName, value);
+
+            indexedRecord.put(field.name(), value);
         }
 
         return indexedRecord;

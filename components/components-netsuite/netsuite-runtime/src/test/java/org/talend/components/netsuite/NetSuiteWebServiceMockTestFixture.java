@@ -18,6 +18,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.talend.components.netsuite.NsObjectTransducer.getNsFieldName;
 import static org.talend.components.netsuite.client.NetSuiteClientService.MESSAGE_LOGGING_ENABLED_PROPERTY_NAME;
 import static org.talend.components.netsuite.client.model.beans.Beans.getProperty;
 
@@ -162,9 +163,9 @@ public class NetSuiteWebServiceMockTestFixture<PortT, AdapterT extends NetSuiteP
         Schema recordSchema = indexedRecord.getSchema();
         assertEquals(typeDesc.getFields().size(), recordSchema.getFields().size());
 
-        for (FieldDesc fieldDesc : typeDesc.getFields()) {
-            String fieldName = fieldDesc.getName();
-            Schema.Field field = recordSchema.getField(fieldName);
+        for (Schema.Field field : recordSchema.getFields()) {
+            String nsFieldName = getNsFieldName(field);
+            FieldDesc fieldDesc = typeDesc.getField(nsFieldName);
             assertNotNull(field);
 
             Object value = indexedRecord.get(field.pos());
@@ -205,9 +206,8 @@ public class NetSuiteWebServiceMockTestFixture<PortT, AdapterT extends NetSuiteP
 
         for (FieldDesc fieldDesc : typeDesc.getFields()) {
             String fieldName = fieldDesc.getName();
-            String propertyName = fieldDesc.getInternalName();
 
-            Object value = getProperty(nsObject, propertyName);
+            Object value = getProperty(nsObject, fieldName);
 
             if (fieldDesc instanceof CustomFieldDesc) {
                 CustomFieldDesc customFieldDesc = fieldDesc.asCustom();

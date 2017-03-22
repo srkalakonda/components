@@ -3,12 +3,15 @@ package org.talend.components.azurestorage.blob.runtime;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 
+import org.apache.commons.lang3.StringUtils;
 import org.talend.components.api.component.runtime.RuntimableRuntime;
 import org.talend.components.api.container.RuntimeContainer;
 import org.talend.components.api.properties.ComponentProperties;
 import org.talend.components.azurestorage.AzureStorageProvideConnectionProperties;
 import org.talend.components.azurestorage.tazurestorageconnection.TAzureStorageConnectionProperties;
 import org.talend.components.azurestorage.utils.SharedAccessSignatureUtils;
+import org.talend.daikon.i18n.GlobalI18N;
+import org.talend.daikon.i18n.I18nMessages;
 import org.talend.daikon.properties.ValidationResult;
 
 import com.microsoft.azure.storage.CloudStorageAccount;
@@ -19,43 +22,81 @@ import com.microsoft.azure.storage.blob.CloudBlobClient;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 
 public class AzureStorageRuntime implements RuntimableRuntime<ComponentProperties> {
-	
+
+    private static final long serialVersionUID = 8150539704549116311L;
+
     public static final String KEY_CONNECTION_PROPERTIES = "connection";
 
-	public AzureStorageProvideConnectionProperties properties;
-	
+    public AzureStorageProvideConnectionProperties properties;
+
+    private static final I18nMessages messages = GlobalI18N.getI18nMessageProvider().getI18nMessages(AzureStorageRuntime.class);
+
     @Override
-    public ValidationResult initialize(RuntimeContainer container, ComponentProperties properties) {
+    public ValidationResult initialize(RuntimeContainer runtimeContainer, ComponentProperties properties) {
+        // init
         this.properties = (AzureStorageProvideConnectionProperties) properties;
-        return ValidationResult.OK;
+        TAzureStorageConnectionProperties conn = getUsedConnection(runtimeContainer);
+
+        // Validate connection properties
+
+        String errorMessage = "";
+        if (conn == null) { // check connection failure
+
+            errorMessage = messages.getMessage("error.VacantConnection"); //$NON-NLS-1$
+
+        } else if (conn.useSharedAccessSignature.getValue() && StringUtils.isEmpty(conn.sharedAccessSignature.getStringValue())) { // checks
+                                                                                                                                   // SAS
+            errorMessage = messages.getMessage("error.EmptySAS"); //$NON-NLS-1$
+        } else if (!conn.useSharedAccessSignature.getValue() && (StringUtils.isEmpty(conn.accountName.getStringValue())
+                || StringUtils.isEmpty(conn.accountKey.getStringValue()))) { // checks connection's account and key
+
+            errorMessage = messages.getMessage("error.EmptyKey"); //$NON-NLS-1$
+        }
+
+        // Return result
+        if (errorMessage.isEmpty()) {
+            return ValidationResult.OK;
+        } else {
+            return createValidationResult(ValidationResult.Result.ERROR, errorMessage);
+        }
     }
-    
-    public TAzureStorageConnectionProperties validateConnection(RuntimeContainer container) {
-        TAzureStorageConnectionProperties connProps = getConnectionProperties();
-        String refComponentId = connProps.getReferencedComponentId();
-        TAzureStorageConnectionProperties sharedConn;
+
+
+
+    public TAzureStorageConnectionProperties getConnectionProperties() {
+        return properties.getConnectionProperties();
+    }
+
+    public TAzureStorageConnectionProperties getUsedConnection(RuntimeContainer runtimeContainer) {
+        TAzureStorageConnectionProperties connectionProperties = ((AzureStorageProvideConnectionProperties) properties)
+                .getConnectionProperties();
+        String refComponentId = connectionProperties.getReferencedComponentId();
+
         // Using another component's connection
         if (refComponentId != null) {
             // In a runtime container
-            if (container != null) {
-                sharedConn = (TAzureStorageConnectionProperties) container.getComponentData(refComponentId,
-                        KEY_CONNECTION_PROPERTIES);
+            if (runtimeContainer != null) {
+                TAzureStorageConnectionProperties sharedConn = (TAzureStorageConnectionProperties) runtimeContainer
+                        .getComponentData(refComponentId, KEY_CONNECTION_PROPERTIES);
                 if (sharedConn != null) {
                     return sharedConn;
                 }
             }
             // Design time
-            connProps = connProps.getReferencedConnectionProperties();
+            connectionProperties = connectionProperties.getReferencedConnectionProperties();
         }
-        if (container != null) {
-            container.setComponentData(container.getCurrentComponentId(), KEY_CONNECTION_PROPERTIES, connProps);
+        if (runtimeContainer != null) {
+            runtimeContainer.setComponentData(runtimeContainer.getCurrentComponentId(), KEY_CONNECTION_PROPERTIES,
+                    connectionProperties);
         }
-        return connProps;
+        return connectionProperties;
     }
 
-    public CloudStorageAccount getStorageAccount(RuntimeContainer container) throws URISyntaxException, InvalidKeyException {
-        TAzureStorageConnectionProperties conn = validateConnection(container);
+    public CloudStorageAccount getStorageAccount(RuntimeContainer runtimeContainer)
+            throws URISyntaxException, InvalidKeyException {
+
         CloudStorageAccount account;
+        TAzureStorageConnectionProperties conn = getUsedConnection(runtimeContainer);
         if (conn.useSharedAccessSignature.getValue()) {
             SharedAccessSignatureUtils sas = SharedAccessSignatureUtils
                     .getSharedAccessSignatureUtils(conn.sharedAccessSignature.getValue());
@@ -63,12 +104,14 @@ public class AzureStorageRuntime implements RuntimableRuntime<ComponentPropertie
             account = new CloudStorageAccount(credentials, true, null, sas.getAccount());
 
         } else {
-            String acct = conn.accountName.getValue();
-            String key = conn.accountKey.getValue();
-            String protocol = conn.protocol.getValue().toString().toLowerCase();
-            String storageConnectionString = "DefaultEndpointsProtocol=" + protocol + ";" + "AccountName=" + acct + ";"
-                    + "AccountKey=" + key;
-            account = CloudStorageAccount.parse(storageConnectionString);
+            StringBuilder connectionString = new StringBuilder();
+            connectionString.append("DefaultEndpointsProtocol=")
+                    .append(conn.protocol.getValue().toString().toLowerCase())
+                    //
+                    .append(";AccountName=").append(conn.accountName.getValue())
+                    //
+                    .append(";AccountKey=").append(conn.accountKey.getValue());
+            account = CloudStorageAccount.parse(connectionString.toString());
         }
 
         return account;
@@ -77,30 +120,34 @@ public class AzureStorageRuntime implements RuntimableRuntime<ComponentPropertie
     /**
      * getServiceClient.
      *
-     * @param container {@link RuntimeContainer} container
+     * @param runtimeContainer {@link RuntimeContainer} container
      * @return {@link CloudBlobClient} cloud blob client
      */
-    public CloudBlobClient getServiceClient(RuntimeContainer container) throws InvalidKeyException, URISyntaxException {
-        return getStorageAccount(container).createCloudBlobClient();
+    public CloudBlobClient getServiceClient(RuntimeContainer runtimeContainer) throws InvalidKeyException, URISyntaxException {
+        return getStorageAccount(runtimeContainer).createCloudBlobClient();
     }
 
     /**
      * getStorageContainerReference.
      *
-     * @param container {@link RuntimeContainer} container
-     * @param storageContainer {@link String} storage container
+     * @param runtimeContainer {@link RuntimeContainer} container
+     * @param containerName {@link String} storage container
      * @return {@link CloudBlobContainer} cloud blob container
      * @throws StorageException
      * @throws URISyntaxException
      * @throws InvalidKeyException
      */
-    public CloudBlobContainer getStorageContainerReference(RuntimeContainer container, String storageContainer)
+    public CloudBlobContainer getAzureStorageBlobContainerReference(RuntimeContainer runtimeContainer, String containerName)
             throws InvalidKeyException, URISyntaxException, StorageException {
-        return getServiceClient(container).getContainerReference(storageContainer);
+
+        return getServiceClient(runtimeContainer).getContainerReference(containerName);
     }
-    
-    public TAzureStorageConnectionProperties getConnectionProperties() {
-        return properties.getConnectionProperties();
+
+    public ValidationResult createValidationResult(ValidationResult.Result resultCode, String resultMessage) {
+        ValidationResult vr = new ValidationResult();
+        vr.setMessage(resultMessage); // $NON-NLS-1$
+        vr.setStatus(resultCode);
+        return vr;
     }
 
 }

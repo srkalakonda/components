@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.avro.Schema;
-import org.apache.commons.lang3.StringUtils;
 import org.talend.components.api.component.runtime.SourceOrSink;
 import org.talend.components.api.container.RuntimeContainer;
 import org.talend.components.api.exception.ComponentException;
@@ -28,8 +27,6 @@ import org.talend.components.azurestorage.AzureStorageProvideConnectionPropertie
 import org.talend.components.azurestorage.tazurestorageconnection.TAzureStorageConnectionProperties;
 import org.talend.daikon.NamedThing;
 import org.talend.daikon.SimpleNamedThing;
-import org.talend.daikon.i18n.GlobalI18N;
-import org.talend.daikon.i18n.I18nMessages;
 import org.talend.daikon.properties.ValidationResult;
 import org.talend.daikon.properties.ValidationResult.Result;
 
@@ -41,37 +38,20 @@ public class AzureStorageSourceOrSink extends AzureStorageRuntime implements Sou
     private static final long serialVersionUID = 1589394346101991075L;
 
     protected transient Schema schema;
-    
-    private static final I18nMessages messages = GlobalI18N.getI18nMessageProvider()
-            .getI18nMessages(AzureStorageSourceOrSink.class);
 
     @Override
-    public ValidationResult validate(RuntimeContainer container) {
-        TAzureStorageConnectionProperties conn = validateConnection(container);
-        if(conn==null){
-        	//check connection failure
-        	ValidationResult vr = new ValidationResult();
-            vr.setMessage(messages.getMessage("error.VacantConnection")); //$NON-NLS-1$
-            vr.setStatus(ValidationResult.Result.ERROR);
-            return vr;
+    public ValidationResult initialize(RuntimeContainer runtimeContainer, ComponentProperties properties) {
+        ValidationResult validationResult = super.initialize(runtimeContainer, properties);
+        if (validationResult.getStatus() == ValidationResult.Result.ERROR) {
+            return validationResult;
         }
-        if (conn.useSharedAccessSignature.getValue()) {
-            // checks SAS
-            if (StringUtils.isEmpty(conn.sharedAccessSignature.getStringValue())) {
-                ValidationResult vr = new ValidationResult();
-                vr.setMessage(messages.getMessage("error.EmptySAS")); //$NON-NLS-1$
-                vr.setStatus(ValidationResult.Result.ERROR);
-                return vr;
-            }
-        } else {
-            // checks connection's account and key
-            if (StringUtils.isEmpty(conn.accountName.getStringValue()) || StringUtils.isEmpty(conn.accountKey.getStringValue())) {
-                ValidationResult vr = new ValidationResult();
-                vr.setMessage(messages.getMessage("error.EmptyKey")); //$NON-NLS-1$
-                vr.setStatus(ValidationResult.Result.ERROR);
-                return vr;
-            }
-        }
+
+        return ValidationResult.OK;
+    }
+
+    @Override
+    public ValidationResult validate(RuntimeContainer runtimeContainer) {
+        // Nothing to validate here
         return ValidationResult.OK;
     }
 
@@ -81,16 +61,20 @@ public class AzureStorageSourceOrSink extends AzureStorageRuntime implements Sou
     }
 
     public static ValidationResult validateConnection(AzureStorageProvideConnectionProperties properties) {
-        ValidationResult vr = new ValidationResult().setStatus(Result.OK);
+
         try {
             AzureStorageSourceOrSink sos = new AzureStorageSourceOrSink();
             sos.initialize(null, (ComponentProperties) properties);
             sos.getStorageAccount(null);
         } catch (InvalidKeyException | URISyntaxException e) {
+            ValidationResult vr = new ValidationResult();
             vr.setStatus(Result.ERROR);
             vr.setMessage(e.getLocalizedMessage());
+            return vr;
         }
-        return vr;
+
+        return ValidationResult.OK;
+
     }
 
     public static List<NamedThing> getSchemaNames(RuntimeContainer container, TAzureStorageConnectionProperties properties)

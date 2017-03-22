@@ -54,6 +54,9 @@ public class NetSuiteInputModuleProperties extends NetSuiteModuleProperties {
         mainForm.addRow(widget(searchQuery)
                 .setWidgetType(Widget.TABLE_WIDGET_TYPE));
 
+        Form advForm = Form.create(this, Form.ADVANCED);
+        advForm.addRow(connection.getForm(Form.ADVANCED));
+
         Form refForm = Form.create(this, Form.REFERENCE);
         refForm.addRow(widget(moduleName)
                 .setWidgetType(Widget.NAME_SELECTION_REFERENCE_WIDGET_TYPE)

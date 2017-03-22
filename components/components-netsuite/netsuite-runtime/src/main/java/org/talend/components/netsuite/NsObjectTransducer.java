@@ -18,6 +18,7 @@ import static org.talend.components.netsuite.client.model.beans.Beans.getPropert
 import static org.talend.components.netsuite.client.model.beans.Beans.getSimpleProperty;
 import static org.talend.components.netsuite.client.model.beans.Beans.setSimpleProperty;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -35,6 +36,7 @@ import org.joda.time.DateTimeZone;
 import org.joda.time.MutableDateTime;
 import org.talend.components.api.exception.ComponentException;
 import org.talend.components.netsuite.client.NetSuiteClientService;
+import org.talend.components.netsuite.client.NetSuiteException;
 import org.talend.components.netsuite.client.NsRef;
 import org.talend.components.netsuite.client.model.CustomFieldDesc;
 import org.talend.components.netsuite.client.model.FieldDesc;
@@ -46,6 +48,11 @@ import org.talend.components.netsuite.client.model.beans.EnumAccessor;
 import org.talend.components.netsuite.client.model.customfield.CustomFieldRefType;
 import org.talend.daikon.di.DiSchemaConstants;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
+import com.fasterxml.jackson.databind.ObjectWriter;
+import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule;
+
 /**
  *
  */
@@ -54,6 +61,8 @@ public abstract class NsObjectTransducer {
     protected NetSuiteClientService<?> clientService;
 
     protected final DatatypeFactory datatypeFactory;
+
+    protected final ObjectMapper objectMapper;
 
     protected Map<Class<?>, ValueConverter<?, ?>> valueConverterCache = new HashMap<>();
 
@@ -65,6 +74,10 @@ public abstract class NsObjectTransducer {
         } catch (DatatypeConfigurationException e) {
             throw new ComponentException(e);
         }
+
+        JaxbAnnotationModule jaxbAnnotationModule = new JaxbAnnotationModule();
+        objectMapper = new ObjectMapper();
+        objectMapper.registerModule(jaxbAnnotationModule);
     }
 
     public NetSuiteClientService<?> getClientService() {
@@ -73,6 +86,10 @@ public abstract class NsObjectTransducer {
 
     public DatatypeFactory getDatatypeFactory() {
         return datatypeFactory;
+    }
+
+    public ObjectMapper getObjectMapper() {
+        return objectMapper;
     }
 
     protected Schema getDynamicSchema(TypeDesc typeDesc, Schema designSchema, String targetSchemaName) {
@@ -340,6 +357,8 @@ public abstract class NsObjectTransducer {
         } else if (valueClass.isEnum()) {
             Class<Enum> enumClass = (Class<Enum>) valueClass;
             return new EnumValueConverter<>(enumClass, getEnumAccessor(enumClass));
+        } else if (!valueClass.isPrimitive()) {
+            return new JsonValueConverter<>(objectMapper, valueClass);
         }
         return null;
     }
@@ -475,5 +494,41 @@ public abstract class NsObjectTransducer {
         }
     }
 
+    public static class JsonValueConverter<T> implements ValueConverter<T, String> {
+        protected Class<T> clazz;
+        protected ObjectReader objectReader;
+        protected ObjectWriter objectWriter;
+
+        public JsonValueConverter(ObjectMapper objectMapper, Class<T> clazz) {
+            this.clazz = clazz;
+
+            objectWriter = objectMapper.writer().forType(clazz);
+            objectReader = objectMapper.reader().forType(clazz);
+        }
+
+        @Override
+        public String convertInput(T value) {
+            if (value == null) {
+                return null;
+            }
+            try {
+                return objectWriter.writeValueAsString(value);
+            } catch (IOException e) {
+                throw new NetSuiteException(new NetSuiteErrorCode("JSON_PROCESSING", e.getMessage()), e);
+            }
+        }
+
+        @Override
+        public T convertOutput(String value) {
+            if (value == null) {
+                return null;
+            }
+            try {
+                return objectReader.readValue(value);
+            } catch (IOException e) {
+                throw new NetSuiteException(new NetSuiteErrorCode("JSON_PROCESSING", e.getMessage()), e);
+            }
+        }
+    }
 }
 

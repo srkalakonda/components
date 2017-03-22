@@ -62,6 +62,7 @@ public class NetSuiteEndpoint {
         Integer roleId = connProps.role.getValue();
         String account = connProps.account.getStringValue();
         String applicationId = connProps.applicationId.getStringValue();
+        Boolean customizationEnabled = connProps.customizationEnabled.getValue();
 
         NetSuiteCredentials credentials = new NetSuiteCredentials();
         credentials.setEmail(email);
@@ -71,7 +72,9 @@ public class NetSuiteEndpoint {
         credentials.setApplicationId(applicationId);
 
         try {
-            return new ConnectionConfig(new URL(endpointUrl), credentials);
+            ConnectionConfig connectionConfig = new ConnectionConfig(new URL(endpointUrl), credentials);
+            connectionConfig.setCustomizationEnabled(customizationEnabled);
+            return connectionConfig;
         } catch (MalformedURLException e) {
             throw new NetSuiteException("Invalid endpoint URL: " + endpointUrl);
         }
@@ -100,6 +103,7 @@ public class NetSuiteEndpoint {
         NetSuiteClientService<?> clientService = clientFactory.createClient();
         clientService.setEndpointUrl(connectionConfig.getEndpointUrl().toString());
         clientService.setCredentials(connectionConfig.getCredentials());
+        clientService.setCustomizationEnabled(connectionConfig.isCustomizationEnabled());
 
         clientService.login();
 
@@ -109,6 +113,7 @@ public class NetSuiteEndpoint {
     public static class ConnectionConfig {
         private URL endpointUrl;
         private NetSuiteCredentials credentials;
+        private boolean customizationEnabled;
 
         public ConnectionConfig() {
         }
@@ -134,6 +139,14 @@ public class NetSuiteEndpoint {
             this.credentials = credentials;
         }
 
+        public boolean isCustomizationEnabled() {
+            return customizationEnabled;
+        }
+
+        public void setCustomizationEnabled(boolean customizationEnabled) {
+            this.customizationEnabled = customizationEnabled;
+        }
+
         @Override
         public boolean equals(Object o) {
             if (this == o)
@@ -141,12 +154,13 @@ public class NetSuiteEndpoint {
             if (o == null || getClass() != o.getClass())
                 return false;
             ConnectionConfig that = (ConnectionConfig) o;
-            return Objects.equals(endpointUrl, that.endpointUrl) && Objects.equals(credentials, that.credentials);
+            return customizationEnabled == that.customizationEnabled && Objects.equals(endpointUrl, that.endpointUrl) && Objects
+                    .equals(credentials, that.credentials);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(endpointUrl, credentials);
+            return Objects.hash(endpointUrl, credentials, customizationEnabled);
         }
 
         @Override
@@ -154,6 +168,7 @@ public class NetSuiteEndpoint {
             final StringBuilder sb = new StringBuilder("ConnectionConfig{");
             sb.append("endpointUrl=").append(endpointUrl);
             sb.append(", credentials=").append(credentials);
+            sb.append(", customizationEnabled=").append(customizationEnabled);
             sb.append('}');
             return sb.toString();
         }

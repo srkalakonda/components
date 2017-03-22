@@ -40,6 +40,7 @@ import org.talend.daikon.NamedThing;
 import org.talend.daikon.SimpleNamedThing;
 import org.talend.daikon.avro.AvroUtils;
 import org.talend.daikon.avro.SchemaConstants;
+import org.talend.daikon.di.DiSchemaConstants;
 
 /**
  *
@@ -190,6 +191,8 @@ public class NetSuiteDatasetRuntimeImpl implements NetSuiteDatasetRuntime {
             // Add some Talend6 custom properties to the schema.
             Schema avroFieldSchema = AvroUtils.unwrapIfNullable(avroField.schema());
 
+            avroField.addProp(DiSchemaConstants.TALEND6_COLUMN_ORIGINAL_DB_COLUMN_NAME, fieldDesc.getInternalName());
+
             if (AvroUtils.isSameType(avroFieldSchema, AvroUtils._string())) {
                 if (fieldDesc.getLength() != 0) {
                     avroField.addProp(SchemaConstants.TALEND_COLUMN_DB_LENGTH, String.valueOf(fieldDesc.getLength()));
@@ -200,11 +203,15 @@ public class NetSuiteDatasetRuntimeImpl implements NetSuiteDatasetRuntime {
                 CustomFieldDesc customFieldInfo = (CustomFieldDesc) fieldDesc;
                 CustomFieldRefType customFieldRefType = customFieldInfo.getCustomFieldType();
 
+                avroField.addProp(DiSchemaConstants.TALEND6_COLUMN_SOURCE_TYPE, customFieldRefType.getTypeName());
+
                 if (customFieldRefType == CustomFieldRefType.DATE) {
                     avroField.addProp(SchemaConstants.TALEND_COLUMN_PATTERN, "yyyy-MM-dd'T'HH:mm:ss'.000Z'");
                 }
             } else {
                 Class<?> fieldType = fieldDesc.getValueType();
+
+                avroField.addProp(DiSchemaConstants.TALEND6_COLUMN_SOURCE_TYPE, fieldType.getSimpleName());
 
                 if (fieldType == XMLGregorianCalendar.class) {
                     avroField.addProp(SchemaConstants.TALEND_COLUMN_PATTERN, "yyyy-MM-dd'T'HH:mm:ss'.000Z'");

@@ -175,15 +175,15 @@ public class NsObjectInputTransducerTest extends NetSuiteMockTestBase {
                 .fields()
                 // Field 1
                 .name("InternalId")
-                .type(NetSuiteDatasetRuntimeImpl.inferSchemaForField(typeDesc.getField("InternalId")))
+                .type(NetSuiteDatasetRuntimeImpl.inferSchemaForField(typeDesc.getField("internalId")))
                 .noDefault()
                 // Field 2
                 .name("TranId")
-                .type(NetSuiteDatasetRuntimeImpl.inferSchemaForField(typeDesc.getField("TranId")))
+                .type(NetSuiteDatasetRuntimeImpl.inferSchemaForField(typeDesc.getField("tranId")))
                 .noDefault()
                 // Field 3
                 .name("LastModifiedDate")
-                .type(NetSuiteDatasetRuntimeImpl.inferSchemaForField(typeDesc.getField("LastModifiedDate")))
+                .type(NetSuiteDatasetRuntimeImpl.inferSchemaForField(typeDesc.getField("lastModifiedDate")))
                 .noDefault()
                 //
                 .endRecord();
@@ -223,15 +223,15 @@ public class NsObjectInputTransducerTest extends NetSuiteMockTestBase {
                 .fields()
                 // Field 1
                 .name("InternalId")
-                .type(NetSuiteDatasetRuntimeImpl.inferSchemaForField(typeDesc.getField("InternalId")))
+                .type(NetSuiteDatasetRuntimeImpl.inferSchemaForField(typeDesc.getField("internalId")))
                 .noDefault()
                 // Field 2
                 .name("TranId")
-                .type(NetSuiteDatasetRuntimeImpl.inferSchemaForField(typeDesc.getField("TranId")))
+                .type(NetSuiteDatasetRuntimeImpl.inferSchemaForField(typeDesc.getField("tranId")))
                 .noDefault()
                 // Field 3
                 .name("LastModifiedDate")
-                .type(NetSuiteDatasetRuntimeImpl.inferSchemaForField(typeDesc.getField("LastModifiedDate")))
+                .type(NetSuiteDatasetRuntimeImpl.inferSchemaForField(typeDesc.getField("lastModifiedDate")))
                 .noDefault()
                 //
                 .endRecord();

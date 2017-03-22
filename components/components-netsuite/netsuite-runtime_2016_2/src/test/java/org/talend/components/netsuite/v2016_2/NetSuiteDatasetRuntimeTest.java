@@ -19,6 +19,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.talend.components.netsuite.NsObjectTransducer.getNsFieldByName;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,6 +34,7 @@ import org.talend.components.netsuite.client.model.FieldDesc;
 import org.talend.components.netsuite.client.model.TypeDesc;
 import org.talend.components.netsuite.v2016_2.client.NetSuiteClientServiceImpl;
 import org.talend.daikon.avro.SchemaConstants;
+import org.talend.daikon.di.DiSchemaConstants;
 
 import com.netsuite.webservices.v2016_2.platform.NetSuitePortType;
 
@@ -55,26 +57,46 @@ public class NetSuiteDatasetRuntimeTest extends NetSuiteMockTestBase {
         assertThat(s.getFields(), hasSize(typeDesc.getFields().size()));
         assertThat(s.getObjectProps().keySet(), empty());
 
-        FieldDesc fieldDesc = typeDesc.getField("AcctType");
-        Schema.Field f = s.getField(fieldDesc.getName());
+        FieldDesc fieldDesc = typeDesc.getField("acctType");
+        Schema.Field f = getNsFieldByName(s, fieldDesc.getName());
         assertUnionType(f.schema(), Arrays.asList(Schema.Type.STRING, Schema.Type.NULL));
+        assertThat(f.getObjectProps().keySet(), containsInAnyOrder(
+                DiSchemaConstants.TALEND6_COLUMN_ORIGINAL_DB_COLUMN_NAME,
+                DiSchemaConstants.TALEND6_COLUMN_SOURCE_TYPE
+        ));
+        assertThat(f.getProp(DiSchemaConstants.TALEND6_COLUMN_ORIGINAL_DB_COLUMN_NAME), is(fieldDesc.getName()));
         assertThat(f.schema().getObjectProps().keySet(), empty());
 
-        fieldDesc = typeDesc.getField("AcctName");
-        f = s.getField(fieldDesc.getName());
+        fieldDesc = typeDesc.getField("acctName");
+        f = getNsFieldByName(s, fieldDesc.getName());
         assertUnionType(f.schema(), Arrays.asList(Schema.Type.STRING, Schema.Type.NULL));
+        assertThat(f.getObjectProps().keySet(), containsInAnyOrder(
+                DiSchemaConstants.TALEND6_COLUMN_ORIGINAL_DB_COLUMN_NAME,
+                DiSchemaConstants.TALEND6_COLUMN_SOURCE_TYPE
+        ));
+        assertThat(f.getProp(DiSchemaConstants.TALEND6_COLUMN_ORIGINAL_DB_COLUMN_NAME), is(fieldDesc.getName()));
         assertThat(f.schema().getObjectProps().keySet(), empty());
 
-        fieldDesc = typeDesc.getField("Inventory");
-        f = s.getField(fieldDesc.getName());
+        fieldDesc = typeDesc.getField("inventory");
+        f = getNsFieldByName(s, fieldDesc.getName());
         assertUnionType(f.schema(), Arrays.asList(Schema.Type.BOOLEAN, Schema.Type.NULL));
+        assertThat(f.getObjectProps().keySet(), containsInAnyOrder(
+                DiSchemaConstants.TALEND6_COLUMN_ORIGINAL_DB_COLUMN_NAME,
+                DiSchemaConstants.TALEND6_COLUMN_SOURCE_TYPE
+        ));
+        assertThat(f.getProp(DiSchemaConstants.TALEND6_COLUMN_ORIGINAL_DB_COLUMN_NAME), is(fieldDesc.getName()));
         assertThat(f.schema().getObjectProps().keySet(), empty());
 
-        fieldDesc = typeDesc.getField("TranDate");
-        f = s.getField(fieldDesc.getName());
+        fieldDesc = typeDesc.getField("tranDate");
+        f = getNsFieldByName(s, fieldDesc.getName());
         assertUnionType(f.schema(), Arrays.asList(Schema.Type.LONG, Schema.Type.NULL));
-        assertThat(f.getObjectProps().keySet(), containsInAnyOrder(SchemaConstants.TALEND_COLUMN_PATTERN));
+        assertThat(f.getObjectProps().keySet(), containsInAnyOrder(
+                SchemaConstants.TALEND_COLUMN_PATTERN,
+                DiSchemaConstants.TALEND6_COLUMN_ORIGINAL_DB_COLUMN_NAME,
+                DiSchemaConstants.TALEND6_COLUMN_SOURCE_TYPE
+        ));
         assertThat(f.getProp(SchemaConstants.TALEND_COLUMN_PATTERN), is("yyyy-MM-dd'T'HH:mm:ss'.000Z'"));
+        assertThat(f.getProp(DiSchemaConstants.TALEND6_COLUMN_ORIGINAL_DB_COLUMN_NAME), is(fieldDesc.getName()));
     }
 
     @Test
@@ -83,7 +105,6 @@ public class NetSuiteDatasetRuntimeTest extends NetSuiteMockTestBase {
         List<String> operators = dataSetRuntime.getSearchFieldOperators();
         for (String operator : operators) {
             assertNotNull(operator);
-//            System.out.println(operator);
         }
     }
 

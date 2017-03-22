@@ -49,7 +49,7 @@ public class ValueConverterTest extends NetSuiteMockTestBase {
 
         NsObjectInputTransducer transducer = new NsObjectInputTransducer(clientService, s, typeDesc.getTypeName());
 
-        FieldDesc fieldDesc = typeDesc.getField("AcctType");
+        FieldDesc fieldDesc = typeDesc.getField("acctType");
         NsObjectTransducer.ValueConverter<Enum<AccountType>, String> converter1 =
                 (NsObjectTransducer.ValueConverter<Enum<AccountType>, String>) transducer.getValueConverter(fieldDesc);
         assertEquals(AccountType.ACCOUNTS_PAYABLE.value(),
@@ -57,7 +57,7 @@ public class ValueConverterTest extends NetSuiteMockTestBase {
         assertEquals(AccountType.ACCOUNTS_PAYABLE,
                 converter1.convertOutput(AccountType.ACCOUNTS_PAYABLE.value()));
 
-        fieldDesc = typeDesc.getField("GeneralRate");
+        fieldDesc = typeDesc.getField("generalRate");
         assertNotNull(fieldDesc);
         NsObjectTransducer.ValueConverter<Enum<ConsolidatedRate>, String> converter2 =
                 (NsObjectTransducer.ValueConverter<Enum<ConsolidatedRate>, String>) transducer.getValueConverter(fieldDesc);
@@ -89,9 +89,7 @@ public class ValueConverterTest extends NetSuiteMockTestBase {
         xmlCalendar1.setMillisecond(dateTime1.getMillisOfSecond());
         xmlCalendar1.setTimezone(tz1.toTimeZone().getRawOffset() / 60000);
 
-        FieldDesc fieldInfo = typeDesc.getField("TranDate");
-        Schema.Field f = s.getField(fieldInfo.getName());
-        assertNotNull(f);
+        FieldDesc fieldInfo = typeDesc.getField("tranDate");
 
         NsObjectInputTransducer transducer = new NsObjectInputTransducer(clientService, s, typeDesc.getTypeName());
 

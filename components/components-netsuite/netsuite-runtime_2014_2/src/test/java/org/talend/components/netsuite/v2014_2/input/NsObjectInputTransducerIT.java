@@ -111,7 +111,7 @@ public class NsObjectInputTransducerIT extends AbstractNetSuiteTestBase {
             }
         }
         if (count == 0) {
-            throw new IllegalStateException("Not records");
+            throw new IllegalStateException("No records");
         }
     }
 

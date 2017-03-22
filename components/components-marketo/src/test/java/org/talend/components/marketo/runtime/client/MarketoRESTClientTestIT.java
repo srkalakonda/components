@@ -786,6 +786,7 @@ public class MarketoRESTClientTestIT extends MarketoClientTestIT {
         iprops.schemaInput.schema.setValue(runtimeSchema);
         MarketoRESTClient client = (MarketoRESTClient) source.getClientService(null);
         MarketoRecordResult result = client.getCustomObjects(iprops, null);
+        assertTrue(result.isSuccess());
         for (IndexedRecord r : result.getRecords()) {
             LOG.debug("r = {}.", r);
             assertNotNull(r);

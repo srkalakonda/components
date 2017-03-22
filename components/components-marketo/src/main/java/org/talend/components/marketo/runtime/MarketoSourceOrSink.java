@@ -171,8 +171,6 @@ public class MarketoSourceOrSink implements SourceOrSink, MarketoSourceOrSinkSch
             for (Map.Entry<String, Object> entry : f.getObjectProps().entrySet()) {
                 nf.addProp(entry.getKey(), entry.getValue());
             }
-            if (f.pos() == dynPos)
-                continue;
             if (f.pos() < dynPos) {
                 beforeFields.add(nf);
             } else {

@@ -32,7 +32,7 @@ public class CustomObjectTest {
     @Before
     public void setUp() throws Exception {
         co = new CustomObject();
-        now = new Date(2016, 3, 21);
+        now = new Date(117, 3, 21);
     }
 
     public CustomObject feedCO() {
@@ -94,7 +94,11 @@ public class CustomObjectTest {
                 + " idField='null', dedupeFields=null, searchableFields=null, fields=null, relationships=null}";
         assertEquals(s, co.toString());
         co = feedCO();
-        s = "CustomObject{name='custom', displayName='Custom', description='a custom object', createdAt=Fri Apr 21 00:00:00 WEST 3916, updatedAt=Fri Apr 21 00:00:00 WEST 3916, idField='model', dedupeFields=[brand, model], searchableFields=[[one, two, three]], fields=[FieldDescription{id=123456, displayName='My phone number', dataType='phone', length=25, rest=null, soap=null}, FieldDescription{id=123456, displayName='My phone number', dataType='phone', length=25, rest=null, soap=null}, FieldDescription{id=123456, displayName='My phone number', dataType='phone', length=25, rest=null, soap=null}], relationships=[ObjectRelation{field='related', relatedTo=RelatedObject{name='Related', field='rel'}, type='string'}, ObjectRelation{field='related', relatedTo=RelatedObject{name='Related', field='rel'}, type='string'}]}";
+        co.setCreatedAt(null);
+        co.setUpdatedAt(null);
+        s = "CustomObject{name='custom', displayName='Custom', description='a custom object', createdAt=null, "
+                + "updatedAt=null, idField='model', dedupeFields=[brand, model], searchableFields=[[one, two, three]], "
+                + "fields=[FieldDescription{id=123456, displayName='My phone number', dataType='phone', length=25, rest=null, soap=null}, FieldDescription{id=123456, displayName='My phone number', dataType='phone', length=25, rest=null, soap=null}, FieldDescription{id=123456, displayName='My phone number', dataType='phone', length=25, rest=null, soap=null}], relationships=[ObjectRelation{field='related', relatedTo=RelatedObject{name='Related', field='rel'}, type='string'}, ObjectRelation{field='related', relatedTo=RelatedObject{name='Related', field='rel'}, type='string'}]}";
         assertEquals(s, co.toString());
     }
 

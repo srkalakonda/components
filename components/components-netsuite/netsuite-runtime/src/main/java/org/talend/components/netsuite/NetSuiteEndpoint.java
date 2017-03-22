@@ -18,6 +18,7 @@ import java.net.URL;
 import java.util.Objects;
 
 import org.apache.commons.lang3.StringUtils;
+import org.talend.components.netsuite.client.MetaDataSource;
 import org.talend.components.netsuite.client.NetSuiteClientFactory;
 import org.talend.components.netsuite.client.NetSuiteClientService;
 import org.talend.components.netsuite.client.NetSuiteCredentials;
@@ -103,7 +104,9 @@ public class NetSuiteEndpoint {
         NetSuiteClientService<?> clientService = clientFactory.createClient();
         clientService.setEndpointUrl(connectionConfig.getEndpointUrl().toString());
         clientService.setCredentials(connectionConfig.getCredentials());
-        clientService.setCustomizationEnabled(connectionConfig.isCustomizationEnabled());
+
+        MetaDataSource metaDataSource = clientService.getMetaDataSource();
+        metaDataSource.setCustomizationEnabled(connectionConfig.isCustomizationEnabled());
 
         clientService.login();
 

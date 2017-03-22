@@ -13,6 +13,7 @@
 
 package org.talend.components.netsuite.client;
 
+import static org.talend.components.netsuite.NetSuiteDatasetRuntimeImpl.getCustomFieldValueClass;
 import static org.talend.components.netsuite.client.model.beans.Beans.getSimpleProperty;
 import static org.talend.components.netsuite.client.model.beans.Beans.toInitialUpper;
 
@@ -32,9 +33,6 @@ import org.talend.components.netsuite.client.model.CustomRecordTypeInfo;
 import org.talend.components.netsuite.client.model.RecordTypeDesc;
 import org.talend.components.netsuite.client.model.RecordTypeInfo;
 import org.talend.components.netsuite.client.model.RefType;
-import org.talend.components.netsuite.client.model.TypeDesc;
-import org.talend.components.netsuite.client.model.beans.BeanInfo;
-import org.talend.components.netsuite.client.model.beans.Beans;
 import org.talend.components.netsuite.client.model.customfield.CustomFieldRefType;
 import org.talend.daikon.java8.Function;
 
@@ -135,7 +133,7 @@ public abstract class DefaultCustomMetaDataSource<PortT> implements CustomMetaDa
                     .getCustomFieldRefType(recordType.getType(), customizationType, customField);
 
             if (customFieldRefType != null) {
-                CustomFieldDesc customFieldInfo = new CustomFieldDesc();
+                CustomFieldDesc customFieldDesc = new CustomFieldDesc();
 
                 String internalId = (String) getSimpleProperty(customField, "internalId");
                 String scriptId = (String) getSimpleProperty(customField, "scriptId");
@@ -148,17 +146,14 @@ public abstract class DefaultCustomMetaDataSource<PortT> implements CustomMetaDa
                 customizationRef.setInternalId(internalId);
                 customizationRef.setScriptId(scriptId);
 
-                customFieldInfo.setRef(customizationRef);
-                customFieldInfo.setName(customizationRef.getScriptId());
-                customFieldInfo.setCustomFieldType(customFieldRefType);
+                customFieldDesc.setRef(customizationRef);
+                customFieldDesc.setName(customizationRef.getScriptId());
+                customFieldDesc.setCustomFieldType(customFieldRefType);
 
-                TypeDesc typeDesc = clientService.getBasicMetaData().getTypeInfo(customFieldRefType.getTypeName());
-                BeanInfo beanInfo = Beans.getBeanInfo(typeDesc.getTypeClass());
-                Class<?> valueType = beanInfo.getProperty("value").getWriteType();
-                customFieldInfo.setValueType(valueType);
-                customFieldInfo.setNullable(true);
+                customFieldDesc.setValueType(getCustomFieldValueClass(customFieldRefType));
+                customFieldDesc.setNullable(true);
 
-                customFieldDescMap.put(customFieldInfo.getName(), customFieldInfo);
+                customFieldDescMap.put(customFieldDesc.getName(), customFieldDesc);
             }
         }
 

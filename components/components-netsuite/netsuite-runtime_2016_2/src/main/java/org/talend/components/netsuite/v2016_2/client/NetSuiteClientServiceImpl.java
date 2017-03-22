@@ -31,6 +31,8 @@ import javax.xml.ws.soap.SOAPFaultException;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.cxf.feature.LoggingFeature;
 import org.talend.components.netsuite.client.CustomMetaDataSource;
+import org.talend.components.netsuite.client.DefaultMetaDataSource;
+import org.talend.components.netsuite.client.MetaDataSource;
 import org.talend.components.netsuite.client.NetSuiteClientService;
 import org.talend.components.netsuite.client.NetSuiteCredentials;
 import org.talend.components.netsuite.client.NetSuiteException;
@@ -40,6 +42,7 @@ import org.talend.components.netsuite.client.NsSearchPreferences;
 import org.talend.components.netsuite.client.NsSearchResult;
 import org.talend.components.netsuite.client.NsStatus;
 import org.talend.components.netsuite.client.NsWriteResponse;
+import org.talend.components.netsuite.client.model.BasicMetaData;
 import org.talend.components.netsuite.v2016_2.client.model.BasicMetaDataImpl;
 
 import com.netsuite.webservices.v2016_2.platform.ExceededRequestSizeFault;
@@ -99,7 +102,7 @@ public class NetSuiteClientServiceImpl extends NetSuiteClientService<NetSuitePor
     public NetSuiteClientServiceImpl() {
         super();
 
-        basicMetaData = BasicMetaDataImpl.getInstance();
+        metaDataSource = createDefaultMetaDataSource();
     }
 
     @Override
@@ -298,6 +301,16 @@ public class NetSuiteClientServiceImpl extends NetSuiteClientService<NetSuitePor
                 return toNsWriteResponseList(writeResponseList);
             }
         });
+    }
+
+    @Override
+    public BasicMetaData getBasicMetaData() {
+        return BasicMetaDataImpl.getInstance();
+    }
+
+    @Override
+    public MetaDataSource createDefaultMetaDataSource() {
+        return new DefaultMetaDataSource(this);
     }
 
     @Override

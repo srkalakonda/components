@@ -83,7 +83,7 @@ public class NetSuiteOutputWriterIT extends AbstractNetSuiteTestBase {
     private final NetSuiteClientFactory<NetSuitePortType> clientFactory = new NetSuiteClientFactoryImpl() {
         @Override public NetSuiteClientService<NetSuitePortType> createClient() throws NetSuiteException {
             NetSuiteClientService<NetSuitePortType> service = super.createClient();
-            service.setCustomizationEnabled(webServiceTestFixture.getClientService().isCustomizationEnabled());
+            service.getMetaDataSource().setCustomizationEnabled(webServiceTestFixture.getClientService().getMetaDataSource().isCustomizationEnabled());
             return service;
         }
     };
@@ -104,7 +104,7 @@ public class NetSuiteOutputWriterIT extends AbstractNetSuiteTestBase {
     @Test
     public void testUpdate() throws Exception {
         final NetSuiteClientService<NetSuitePortType> clientService = webServiceTestFixture.getClientService();
-        clientService.setCustomizationEnabled(false);
+        clientService.getMetaDataSource().setCustomizationEnabled(false);
 
         RuntimeContainer container = mock(RuntimeContainer.class);
 
@@ -267,7 +267,7 @@ public class NetSuiteOutputWriterIT extends AbstractNetSuiteTestBase {
         subsidiaryRef.setType(RecordType.SUBSIDIARY);
         subsidiaryRef.setInternalId(subsidiary.getInternalId());
 
-        TypeDesc typeDesc = clientService.getTypeInfo("Contact");
+        TypeDesc typeDesc = clientService.getMetaDataSource().getTypeInfo("Contact");
         assertNotNull(typeDesc.getField("custentity_interest_bpm"));
 
         List<Contact> recordsToAdd = makeContactRecords(5, subsidiaryRef, typeDesc.getFieldMap());
@@ -358,7 +358,8 @@ public class NetSuiteOutputWriterIT extends AbstractNetSuiteTestBase {
                 customFieldRefMap.put(fieldRef.getScriptId(), fieldRef);
             }
 
-            BooleanCustomFieldRef customFieldRef1 = (BooleanCustomFieldRef) customFieldRefMap.get("custentity_interest_bpm");
+            BooleanCustomFieldRef customFieldRef1 =
+                    (BooleanCustomFieldRef) customFieldRefMap.get("custentity_interest_bpm");
             assertNotNull(customFieldRef1);
             assertEquals(Boolean.FALSE, customFieldRef1.getValue());
         }
@@ -369,7 +370,7 @@ public class NetSuiteOutputWriterIT extends AbstractNetSuiteTestBase {
     @Test
     public void testDelete() throws Exception {
         NetSuiteClientService<NetSuitePortType> clientService = webServiceTestFixture.getClientService();
-        clientService.setCustomizationEnabled(false);
+        clientService.getMetaDataSource().setCustomizationEnabled(false);
 
         RuntimeContainer container = mock(RuntimeContainer.class);
 
@@ -410,7 +411,7 @@ public class NetSuiteOutputWriterIT extends AbstractNetSuiteTestBase {
         sink.setClientFactory(new NetSuiteClientFactoryImpl() {
             @Override public NetSuiteClientService<NetSuitePortType> createClient() throws NetSuiteException {
                 NetSuiteClientService<NetSuitePortType> service = super.createClient();
-                service.setCustomizationEnabled(webServiceTestFixture.getClientService().isCustomizationEnabled());
+                service.getMetaDataSource().setCustomizationEnabled(webServiceTestFixture.getClientService().getMetaDataSource().isCustomizationEnabled());
                 return service;
             }
         });

@@ -18,11 +18,16 @@ import java.util.List;
 import org.apache.avro.Schema;
 import org.talend.components.netsuite.schema.SearchInfo;
 import org.talend.daikon.NamedThing;
+import org.talend.daikon.di.DiSchemaConstants;
 
 /**
  *
  */
 public interface NetSuiteDatasetRuntime {
+
+    String NS_PREFIX = DiSchemaConstants.TALEND6_ADDITIONAL_PROPERTIES + "netsuite.";
+    String NS_CUSTOM_RECORD = NS_PREFIX + "customRecord";
+    String NS_CUSTOM_FIELDS = NS_PREFIX + "customFields";
 
     List<NamedThing> getRecordTypes();
 
@@ -37,5 +42,4 @@ public interface NetSuiteDatasetRuntime {
     Schema getSchemaForDelete(String typeName);
 
     List<String> getSearchFieldOperators();
-
 }

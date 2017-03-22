@@ -13,6 +13,7 @@
 
 package org.talend.components.netsuite;
 
+import static org.talend.components.netsuite.NetSuiteDatasetRuntimeImpl.getCustomFieldValueClass;
 import static org.talend.components.netsuite.client.model.beans.Beans.getEnumAccessor;
 import static org.talend.components.netsuite.client.model.beans.Beans.getProperty;
 import static org.talend.components.netsuite.client.model.beans.Beans.getSimpleProperty;
@@ -36,6 +37,7 @@ import org.apache.avro.Schema;
 import org.joda.time.DateTimeZone;
 import org.joda.time.MutableDateTime;
 import org.talend.components.api.exception.ComponentException;
+import org.talend.components.netsuite.client.MetaDataSource;
 import org.talend.components.netsuite.client.NetSuiteClientService;
 import org.talend.components.netsuite.client.NetSuiteException;
 import org.talend.components.netsuite.client.NsRef;
@@ -58,8 +60,8 @@ import com.fasterxml.jackson.module.jaxb.JaxbAnnotationModule;
  *
  */
 public abstract class NsObjectTransducer {
-
     protected NetSuiteClientService<?> clientService;
+    protected MetaDataSource metaDataSource;
 
     protected final DatatypeFactory datatypeFactory;
 
@@ -79,6 +81,16 @@ public abstract class NsObjectTransducer {
         JaxbAnnotationModule jaxbAnnotationModule = new JaxbAnnotationModule();
         objectMapper = new ObjectMapper();
         objectMapper.registerModule(jaxbAnnotationModule);
+
+        setMetaDataSource(clientService.getMetaDataSource());
+    }
+
+    public MetaDataSource getMetaDataSource() {
+        return metaDataSource;
+    }
+
+    public void setMetaDataSource(MetaDataSource metaDataSource) {
+        this.metaDataSource = metaDataSource;
     }
 
     public NetSuiteClientService<?> getClientService() {
@@ -297,29 +309,10 @@ public abstract class NsObjectTransducer {
     }
 
     public ValueConverter<?, ?> getValueConverter(FieldDesc fieldDesc) {
-        Class<?> valueClass = null;
-
+        Class<?> valueClass;
         if (fieldDesc instanceof CustomFieldDesc) {
-            CustomFieldDesc customFieldInfo = (CustomFieldDesc) fieldDesc;
-            CustomFieldRefType customFieldRefType = customFieldInfo.getCustomFieldType();
-
-            switch (customFieldRefType) {
-            case BOOLEAN:
-                valueClass = Boolean.TYPE;
-                break;
-            case STRING:
-                valueClass = String.class;
-                break;
-            case LONG:
-                valueClass = Long.class;
-                break;
-            case DOUBLE:
-                valueClass = Double.class;
-                break;
-            case DATE:
-                valueClass = XMLGregorianCalendar.class;
-                break;
-            }
+            CustomFieldDesc customFieldDesc = (CustomFieldDesc) fieldDesc;
+            valueClass = getCustomFieldValueClass(customFieldDesc);
         } else {
             valueClass = fieldDesc.getValueType();
         }

@@ -75,11 +75,11 @@ public class NsObjectInputTransducer extends NsObjectTransducer {
         }
 
         if (AvroUtils.isIncludeAllFields(schema)) {
-            TypeDesc typeDescByClass = clientService.getTypeInfo(nsObject.getClass());
-            typeDesc = clientService.getTypeInfo(typeDescByClass.getTypeName());
+            TypeDesc typeDescByClass = metaDataSource.getTypeInfo(nsObject.getClass());
+            typeDesc = metaDataSource.getTypeInfo(typeDescByClass.getTypeName());
             runtimeSchema = getDynamicSchema(typeDesc, schema, typeDesc.getTypeName());
         } else {
-            typeDesc = clientService.getTypeInfo(typeName);
+            typeDesc = metaDataSource.getTypeInfo(typeName);
             runtimeSchema = schema;
         }
     }

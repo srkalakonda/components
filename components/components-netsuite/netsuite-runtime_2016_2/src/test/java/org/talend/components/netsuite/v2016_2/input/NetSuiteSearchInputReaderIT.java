@@ -52,7 +52,7 @@ public class NetSuiteSearchInputReaderIT extends AbstractNetSuiteTestBase {
     private final NetSuiteClientFactory<NetSuitePortType> clientFactory = new NetSuiteClientFactoryImpl() {
         @Override public NetSuiteClientService<NetSuitePortType> createClient() throws NetSuiteException {
             NetSuiteClientService<NetSuitePortType> service = super.createClient();
-            service.setCustomizationEnabled(webServiceTestFixture.getClientService().isCustomizationEnabled());
+            service.getMetaDataSource().setCustomizationEnabled(webServiceTestFixture.getClientService().getMetaDataSource().isCustomizationEnabled());
             return service;
         }
     };

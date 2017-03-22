@@ -78,11 +78,11 @@ public class NsObjectOutputTransducer extends NsObjectTransducer {
             return;
         }
 
-        recordTypeInfo = clientService.getRecordType(typeName);
+        recordTypeInfo = metaDataSource.getRecordType(typeName);
         if (reference) {
-            typeDesc = clientService.getTypeInfo(recordTypeInfo.getRefType().getTypeName());
+            typeDesc = metaDataSource.getTypeInfo(recordTypeInfo.getRefType().getTypeName());
         } else {
-            typeDesc = clientService.getTypeInfo(typeName);
+            typeDesc = metaDataSource.getTypeInfo(typeName);
 
             if (recordSource == null) {
                 recordSource = new DefaultRecordSource(clientService);

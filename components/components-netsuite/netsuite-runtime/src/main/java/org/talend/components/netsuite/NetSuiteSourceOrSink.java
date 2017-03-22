@@ -74,7 +74,8 @@ public abstract class NetSuiteSourceOrSink implements SourceOrSink {
     @Override
     public List<NamedThing> getSchemaNames(RuntimeContainer container) throws IOException {
         try {
-            NetSuiteDatasetRuntime dataSetRuntime = new NetSuiteDatasetRuntimeImpl(getClientService());
+            NetSuiteDatasetRuntime dataSetRuntime = new NetSuiteDatasetRuntimeImpl(
+                    getClientService().getMetaDataSource());
             return dataSetRuntime.getRecordTypes();
         } catch (NetSuiteException e) {
             throw new IOException(e);
@@ -84,7 +85,8 @@ public abstract class NetSuiteSourceOrSink implements SourceOrSink {
     @Override
     public Schema getEndpointSchema(RuntimeContainer container, String schemaName) throws IOException {
         try {
-            NetSuiteDatasetRuntime dataSetRuntime = new NetSuiteDatasetRuntimeImpl(getClientService());
+            NetSuiteDatasetRuntime dataSetRuntime = new NetSuiteDatasetRuntimeImpl(
+                    getClientService().getMetaDataSource());
             return dataSetRuntime.getSchema(schemaName);
         } catch (NetSuiteException e) {
             throw new IOException(e);

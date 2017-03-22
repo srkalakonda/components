@@ -88,7 +88,7 @@ public class NetSuiteOutputTransducerTest extends NetSuiteMockTestBase {
 
         mockGetRequestResults(null);
 
-        TypeDesc typeDesc = clientService.getTypeInfo("Opportunity");
+        TypeDesc typeDesc = clientService.getMetaDataSource().getTypeInfo("Opportunity");
 
         Schema schema = dataSetRuntime.getSchema(typeDesc.getTypeName());
 
@@ -116,7 +116,7 @@ public class NetSuiteOutputTransducerTest extends NetSuiteMockTestBase {
         );
 
         for (String typeName : typeNames) {
-            TypeDesc typeDesc = clientService.getTypeInfo(typeName);
+            TypeDesc typeDesc = clientService.getMetaDataSource().getTypeInfo(typeName);
 
             Schema schema = dataSetRuntime.getSchema(typeDesc.getTypeName());
 
@@ -139,8 +139,8 @@ public class NetSuiteOutputTransducerTest extends NetSuiteMockTestBase {
         NetSuiteRuntime netSuiteRuntime = new NetSuiteRuntimeImpl();
         NetSuiteDatasetRuntime dataSetRuntime = netSuiteRuntime.getDatasetRuntime(mockTestFixture.getConnectionProperties());
 
-        TypeDesc typeDesc = clientService.getTypeInfo(RefType.RECORD_REF.getTypeName());
-        TypeDesc referencedTypeDesc = clientService.getTypeInfo("Opportunity");
+        TypeDesc typeDesc = clientService.getMetaDataSource().getTypeInfo(RefType.RECORD_REF.getTypeName());
+        TypeDesc referencedTypeDesc = clientService.getMetaDataSource().getTypeInfo("Opportunity");
 
         Schema schema = dataSetRuntime.getSchema(typeDesc.getTypeName());
 
@@ -178,7 +178,7 @@ public class NetSuiteOutputTransducerTest extends NetSuiteMockTestBase {
                 new RecordComposer<>(Opportunity.class, customFieldSpecs), 10);
         mockSearchRequestResults(recordList, 100);
 
-        TypeDesc customizedTypeDesc = clientService.getTypeInfo(basicTypeDesc.getTypeName());
+        TypeDesc customizedTypeDesc = clientService.getMetaDataSource().getTypeInfo(basicTypeDesc.getTypeName());
 
         Schema schema = dataSetRuntime.getSchema(customizedTypeDesc.getTypeName());
 

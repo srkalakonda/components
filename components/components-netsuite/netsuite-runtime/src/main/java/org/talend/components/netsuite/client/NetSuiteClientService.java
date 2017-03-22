@@ -14,8 +14,6 @@
 package org.talend.components.netsuite.client;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -37,17 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.talend.components.netsuite.NetSuiteErrorCode;
 import org.talend.components.netsuite.client.model.BasicMetaData;
-import org.talend.components.netsuite.client.model.BasicRecordType;
-import org.talend.components.netsuite.client.model.CustomFieldDesc;
-import org.talend.components.netsuite.client.model.CustomRecordTypeInfo;
-import org.talend.components.netsuite.client.model.FieldDesc;
-import org.talend.components.netsuite.client.model.RecordTypeDesc;
-import org.talend.components.netsuite.client.model.RecordTypeInfo;
-import org.talend.components.netsuite.client.model.SearchRecordTypeDesc;
-import org.talend.components.netsuite.client.model.TypeDesc;
 import org.talend.components.netsuite.client.search.SearchQuery;
-import org.talend.daikon.NamedThing;
-import org.talend.daikon.SimpleNamedThing;
 import org.talend.daikon.exception.ExceptionContext;
 import org.talend.daikon.java8.Function;
 
@@ -98,18 +86,13 @@ public abstract class NetSuiteClientService<PortT> {
 
     protected PortT port;
 
-    protected BasicMetaData basicMetaData;
-
-    protected boolean customizationEnabled = true;
-    protected CustomMetaDataSource customMetaDataSource;
+    protected MetaDataSource metaDataSource;
 
     protected NetSuiteClientService() {
         super();
 
         // Disable eager initialization of JAXBContext
         System.setProperty("com.sun.xml.bind.v2.runtime.JAXBContextImpl.fastBoot", "true");
-
-        customMetaDataSource = createDefaultCustomMetaDataSource();
     }
 
     public String getEndpointUrl() {
@@ -176,14 +159,6 @@ public abstract class NetSuiteClientService<PortT> {
         this.useRequestLevelCredentials = useRequestLevelCredentials;
     }
 
-    public boolean isCustomizationEnabled() {
-        return customizationEnabled;
-    }
-
-    public void setCustomizationEnabled(boolean customizationEnabled) {
-        this.customizationEnabled = customizationEnabled;
-    }
-
     public void login() throws NetSuiteException {
         lock.lock();
         try {
@@ -194,7 +169,11 @@ public abstract class NetSuiteClientService<PortT> {
     }
 
     public SearchQuery newSearch() throws NetSuiteException {
-        return new SearchQuery(this);
+        return newSearch(getMetaDataSource());
+    }
+
+    public SearchQuery newSearch(MetaDataSource metaDataSource) throws NetSuiteException {
+        return new SearchQuery(this, metaDataSource);
     }
 
     public abstract <RecT, SearchT> NsSearchResult<RecT> search(final SearchT searchRecord)
@@ -253,133 +232,17 @@ public abstract class NetSuiteClientService<PortT> {
         }
     }
 
-    public BasicMetaData getBasicMetaData() {
-        return basicMetaData;
+    public abstract BasicMetaData getBasicMetaData();
+
+    public MetaDataSource getMetaDataSource() {
+        return metaDataSource;
+    }
+
+    public MetaDataSource createDefaultMetaDataSource() {
+        return new DefaultMetaDataSource(this);
     }
 
     public abstract CustomMetaDataSource createDefaultCustomMetaDataSource();
-
-    public Collection<RecordTypeInfo> getRecordTypes() {
-        List<RecordTypeInfo> recordTypes = new ArrayList<>();
-
-        Collection<RecordTypeDesc> standardRecordTypes = basicMetaData.getRecordTypes();
-        for (RecordTypeDesc recordType : standardRecordTypes) {
-            recordTypes.add(new RecordTypeInfo(recordType));
-        }
-
-        if (customizationEnabled) {
-            recordTypes.addAll(customMetaDataSource.getCustomRecordTypes());
-        }
-
-        return recordTypes;
-    }
-
-    public Collection<NamedThing> getSearchableTypes() throws NetSuiteException {
-        List<NamedThing> searchableTypes = new ArrayList<>(256);
-
-        Collection<RecordTypeInfo> recordTypes = getRecordTypes();
-
-        for (RecordTypeInfo recordTypeInfo : recordTypes) {
-            RecordTypeDesc recordTypeDesc = recordTypeInfo.getRecordType();
-            if (recordTypeDesc.getSearchRecordType() != null) {
-                SearchRecordTypeDesc searchRecordType = basicMetaData.getSearchRecordType(recordTypeDesc);
-                if (searchRecordType != null) {
-                    searchableTypes.add(new SimpleNamedThing(recordTypeInfo.getName(), recordTypeInfo.getDisplayName()));
-                }
-            }
-        }
-
-        return searchableTypes;
-    }
-
-    public TypeDesc getTypeInfo(final Class<?> clazz) {
-        return getTypeInfo(clazz.getSimpleName());
-    }
-
-    public TypeDesc getTypeInfo(final String typeName) {
-        TypeDesc baseTypeDesc;
-        String targetTypeName = null;
-        Class<?> targetTypeClass;
-        List<FieldDesc> baseFieldDescList;
-
-        RecordTypeInfo recordTypeInfo = getRecordType(typeName);
-        if (recordTypeInfo != null) {
-            if (recordTypeInfo instanceof CustomRecordTypeInfo) {
-                CustomRecordTypeInfo customRecordTypeInfo = (CustomRecordTypeInfo) recordTypeInfo;
-                baseTypeDesc = basicMetaData.getTypeInfo(customRecordTypeInfo.getRecordType().getTypeName());
-                targetTypeName = customRecordTypeInfo.getName();
-            } else {
-                baseTypeDesc = basicMetaData.getTypeInfo(typeName);
-            }
-        } else {
-            baseTypeDesc = basicMetaData.getTypeInfo(typeName);
-        }
-
-        if (targetTypeName == null) {
-            targetTypeName = baseTypeDesc.getTypeName();
-        }
-        targetTypeClass = baseTypeDesc.getTypeClass();
-        baseFieldDescList = baseTypeDesc.getFields();
-
-        List<FieldDesc> resultFieldDescList = new ArrayList<>(baseFieldDescList.size() + 10);
-
-        // Add basic fields except field list containers (custom field list, null field list)
-        for (FieldDesc fieldDesc : baseFieldDescList) {
-            String fieldName = fieldDesc.getName();
-            if (fieldName.equals("customFieldList") || fieldName.equals("nullFieldList")) {
-                continue;
-            }
-            resultFieldDescList.add(fieldDesc);
-        }
-
-        if (recordTypeInfo != null) {
-            if (customizationEnabled) {
-                // Add custom fields
-                Map<String, CustomFieldDesc> customFieldMap = customMetaDataSource.getCustomFields(recordTypeInfo);
-                for (CustomFieldDesc fieldInfo : customFieldMap.values()) {
-                    resultFieldDescList.add(fieldInfo);
-                }
-            }
-        }
-
-        return new TypeDesc(targetTypeName, targetTypeClass, resultFieldDescList);
-    }
-
-    public RecordTypeInfo getRecordType(String typeName) {
-        RecordTypeDesc recordType = basicMetaData.getRecordType(typeName);
-        if (recordType != null) {
-            return new RecordTypeInfo(recordType);
-        }
-        if (customizationEnabled) {
-            return customMetaDataSource.getCustomRecordType(typeName);
-        }
-        return null;
-    }
-
-    public SearchRecordTypeDesc getSearchRecordType(String recordTypeName) {
-        SearchRecordTypeDesc searchRecordType = basicMetaData.getSearchRecordType(recordTypeName);
-        if (searchRecordType != null) {
-            return searchRecordType;
-        }
-        RecordTypeInfo recordTypeInfo = getRecordType(recordTypeName);
-        if (recordTypeInfo != null) {
-            return getSearchRecordType(recordTypeInfo.getRecordType());
-        }
-        return null;
-    }
-
-    public SearchRecordTypeDesc getSearchRecordType(RecordTypeDesc recordType) {
-        if (recordType.getSearchRecordType() != null) {
-            return basicMetaData.getSearchRecordType(recordType.getSearchRecordType());
-        }
-        if (recordType.getType().equals(BasicRecordType.CUSTOM_RECORD_TYPE.getType())) {
-            return basicMetaData.getSearchRecordType(BasicRecordType.CUSTOM_RECORD.getType());
-        }
-        if (recordType.getType().equals(BasicRecordType.CUSTOM_TRANSACTION_TYPE.getType())) {
-            return basicMetaData.getSearchRecordType(BasicRecordType.TRANSACTION.getType());
-        }
-        return null;
-    }
 
     protected <R> R executeUsingLogin(PortOperation<R, PortT> op) throws NetSuiteException {
         lock.lock();
@@ -657,24 +520,6 @@ public abstract class NetSuiteClientService<PortT> {
                 throw new NetSuiteException(new NetSuiteErrorCode(detail.getCode()),
                         ExceptionContext.build().put(ExceptionContext.KEY_MESSAGE, detail.getMessage()));
             }
-        }
-    }
-
-    public static class EmptyCustomMetaDataSource implements CustomMetaDataSource {
-
-        @Override
-        public Collection<CustomRecordTypeInfo> getCustomRecordTypes() {
-            return Collections.emptyList();
-        }
-
-        @Override
-        public CustomRecordTypeInfo getCustomRecordType(String typeName) {
-            return null;
-        }
-
-        @Override
-        public Map<String, CustomFieldDesc> getCustomFields(RecordTypeInfo recordTypeInfo) {
-            return Collections.emptyMap();
         }
     }
 

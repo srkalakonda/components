@@ -48,7 +48,7 @@ public abstract class AbstractNetSuiteRuntime implements NetSuiteRuntime {
     public NetSuiteDatasetRuntime getDatasetRuntime(NetSuiteConnectionProperties properties) {
         try {
             NetSuiteEndpoint endpoint = getEndpoint(context, properties);
-            return new NetSuiteDatasetRuntimeImpl(endpoint.getClientService());
+            return new NetSuiteDatasetRuntimeImpl(endpoint.getClientService().getMetaDataSource());
         } catch (NetSuiteException e) {
             throw new ComponentException(e);
         }

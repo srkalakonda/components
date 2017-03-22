@@ -26,6 +26,8 @@ import org.talend.components.api.component.runtime.AbstractBoundedReader;
 import org.talend.components.api.component.runtime.Result;
 import org.talend.components.api.container.RuntimeContainer;
 import org.talend.components.netsuite.NetSuiteSource;
+import org.talend.components.netsuite.SchemaCustomMetaDataSource;
+import org.talend.components.netsuite.client.MetaDataSource;
 import org.talend.components.netsuite.client.NetSuiteClientService;
 import org.talend.components.netsuite.client.NetSuiteException;
 import org.talend.components.netsuite.client.model.RecordTypeInfo;
@@ -39,10 +41,11 @@ import org.talend.components.netsuite.client.ResultSet;
 public class NetSuiteSearchInputReader extends AbstractBoundedReader<IndexedRecord> {
 
     private transient NetSuiteClientService<?> clientService;
+    private transient MetaDataSource metaDataSource;
 
     private transient NsObjectInputTransducer transducer;
 
-    private transient Schema searchSchema;
+    private transient Schema schema;
 
     private NetSuiteInputProperties properties;
 
@@ -66,8 +69,19 @@ public class NetSuiteSearchInputReader extends AbstractBoundedReader<IndexedReco
     @Override
     public boolean start() throws IOException {
         try {
+            schema = properties.module.main.schema.getValue();
+
             clientService = ((NetSuiteSource) getCurrentSource()).getClientService();
+
+            MetaDataSource originalMetaDataSource = clientService.getMetaDataSource();
+            metaDataSource = clientService.createDefaultMetaDataSource();
+            metaDataSource.setCustomizationEnabled(originalMetaDataSource.isCustomizationEnabled());
+            SchemaCustomMetaDataSource schemaCustomMetaDataSource = new SchemaCustomMetaDataSource(
+                    clientService.getBasicMetaData(), originalMetaDataSource.getCustomMetaDataSource(), schema);
+            metaDataSource.setCustomMetaDataSource(schemaCustomMetaDataSource);
+
             resultSet = search();
+
             return advance();
         } catch (NetSuiteException e) {
             throw new IOException(e);
@@ -107,11 +121,9 @@ public class NetSuiteSearchInputReader extends AbstractBoundedReader<IndexedReco
     }
 
     protected ResultSet<?> search() throws NetSuiteException {
-        searchSchema = properties.module.main.schema.getValue();
-
         String target = properties.module.moduleName.getStringValue();
 
-        SearchQuery search = clientService.newSearch();
+        SearchQuery search = clientService.newSearch(metaDataSource);
         search.target(target);
 
         List<String> fieldNames = properties.module.searchQuery.field.getValue();
@@ -130,7 +142,9 @@ public class NetSuiteSearchInputReader extends AbstractBoundedReader<IndexedReco
         }
 
         RecordTypeInfo recordTypeInfo = search.getRecordTypeInfo();
-        transducer = new NsObjectInputTransducer(clientService, searchSchema, recordTypeInfo.getName());
+
+        transducer = new NsObjectInputTransducer(clientService, schema, recordTypeInfo.getName());
+        transducer.setMetaDataSource(metaDataSource);
 
         ResultSet<?> resultSet = search.search();
         return resultSet;

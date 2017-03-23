@@ -13,28 +13,16 @@
 
 package org.talend.components.netsuite;
 
-import java.util.List;
-
-import org.apache.avro.Schema;
-import org.talend.components.netsuite.schema.SearchInfo;
-import org.talend.daikon.NamedThing;
+import org.talend.daikon.di.DiSchemaConstants;
 
 /**
  *
  */
-public interface NetSuiteDatasetRuntime {
+public interface NetSuiteSchemaConstants {
 
-    List<NamedThing> getRecordTypes();
+    String NS_PREFIX = DiSchemaConstants.TALEND6_ADDITIONAL_PROPERTIES + "netsuite.";
 
-    List<NamedThing> getSearchableTypes();
+    String NS_CUSTOM_RECORD = NS_PREFIX + "custom.record";
+    String NS_CUSTOM_FIELD = NS_PREFIX + "custom.field";
 
-    Schema getSchema(String typeName);
-
-    SearchInfo getSearchInfo(String typeName);
-
-    Schema getSchemaForUpdate(String typeName);
-
-    Schema getSchemaForDelete(String typeName);
-
-    List<String> getSearchFieldOperators();
 }

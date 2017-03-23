@@ -13,12 +13,10 @@
 
 package org.talend.components.netsuite;
 
-import static org.talend.components.netsuite.NetSuiteDatasetRuntimeImpl.getCustomFieldValueClass;
 import static org.talend.components.netsuite.client.model.beans.Beans.getEnumAccessor;
 import static org.talend.components.netsuite.client.model.beans.Beans.getProperty;
 import static org.talend.components.netsuite.client.model.beans.Beans.getSimpleProperty;
 import static org.talend.components.netsuite.client.model.beans.Beans.setSimpleProperty;
-import static org.talend.components.netsuite.client.model.beans.Beans.toInitialLower;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -114,7 +112,7 @@ public abstract class NsObjectTransducer {
         if (dynamicPosProp != null) {
             Set<String> designFieldNames = new HashSet<>(designSchema.getFields().size());
             for (Schema.Field field : designSchema.getFields()) {
-                String fieldName = getNsFieldName(field);
+                String fieldName = NetSuiteDatasetRuntimeImpl.getNsFieldName(field);
                 designFieldNames.add(fieldName);
             }
 
@@ -183,7 +181,7 @@ public abstract class NsObjectTransducer {
 
     protected Schema.Field createSchemaField(FieldDesc fieldDesc) {
         Schema avroFieldType = NetSuiteDatasetRuntimeImpl.inferSchemaForField(fieldDesc);
-        Schema.Field avroField = new Schema.Field(fieldDesc.getName(), avroFieldType, null, null);
+        Schema.Field avroField = new Schema.Field(fieldDesc.getName(), avroFieldType, null, (Object) null);
         return avroField;
     }
 
@@ -195,7 +193,7 @@ public abstract class NsObjectTransducer {
 
         Map<String, CustomFieldDesc> customFieldMap = new HashMap<>();
         for (Schema.Field field : schema.getFields()) {
-            String nsFieldName = getNsFieldName(field);
+            String nsFieldName = NetSuiteDatasetRuntimeImpl.getNsFieldName(field);
             FieldDesc fieldDesc = fieldMap.get(nsFieldName);
 
             if (fieldDesc == null) {
@@ -308,11 +306,39 @@ public abstract class NsObjectTransducer {
         }
     }
 
-    public ValueConverter<?, ?> getValueConverter(FieldDesc fieldDesc) {
+    protected Class<?> getCustomFieldValueClass(CustomFieldRefType customFieldRefType) {
         Class<?> valueClass;
+        switch (customFieldRefType) {
+        case BOOLEAN:
+            valueClass = Boolean.TYPE;
+            break;
+        case STRING:
+            valueClass = String.class;
+            break;
+        case LONG:
+            valueClass = Long.class;
+            break;
+        case DOUBLE:
+            valueClass = Double.class;
+            break;
+        case DATE:
+            valueClass = XMLGregorianCalendar.class;
+            break;
+        case SELECT:
+        case MULTI_SELECT:
+        default:
+            valueClass = null;
+            break;
+        }
+        return valueClass;
+    }
+
+    public ValueConverter<?, ?> getValueConverter(FieldDesc fieldDesc) {
+        Class<?> valueClass = null;
         if (fieldDesc instanceof CustomFieldDesc) {
             CustomFieldDesc customFieldDesc = (CustomFieldDesc) fieldDesc;
-            valueClass = getCustomFieldValueClass(customFieldDesc);
+            CustomFieldRefType customFieldRefType = customFieldDesc.getCustomFieldType();
+            valueClass = getCustomFieldValueClass(customFieldRefType);
         } else {
             valueClass = fieldDesc.getValueType();
         }
@@ -352,21 +378,6 @@ public abstract class NsObjectTransducer {
             return new EnumValueConverter<>(enumClass, getEnumAccessor(enumClass));
         } else if (!valueClass.isPrimitive()) {
             return new JsonValueConverter<>(objectMapper, valueClass);
-        }
-        return null;
-    }
-
-    public static String getNsFieldName(Schema.Field field) {
-        String name = field.getProp(DiSchemaConstants.TALEND6_COLUMN_ORIGINAL_DB_COLUMN_NAME);
-        return name != null ? toInitialLower(name) : toInitialLower(field.name());
-    }
-
-    public static Schema.Field getNsFieldByName(Schema schema, String fieldName) {
-        for (Schema.Field field : schema.getFields()) {
-            String nsFieldName = getNsFieldName(field);
-            if (fieldName.equals(nsFieldName)) {
-                return field;
-            }
         }
         return null;
     }

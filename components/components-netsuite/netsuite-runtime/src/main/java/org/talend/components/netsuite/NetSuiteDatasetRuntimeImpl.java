@@ -13,6 +13,7 @@
 
 package org.talend.components.netsuite;
 
+import static org.talend.components.netsuite.client.model.beans.Beans.toInitialLower;
 import static org.talend.components.netsuite.client.model.beans.Beans.toInitialUpper;
 
 import java.util.ArrayList;
@@ -88,15 +89,21 @@ public class NetSuiteDatasetRuntimeImpl implements NetSuiteDatasetRuntime {
             final TypeDesc typeDesc = metaDataSource.getTypeInfo(typeName);
 
             List<FieldDesc> fieldDescList = new ArrayList<>(typeDesc.getFields());
-            // Sort by name alphabetically
             Collections.sort(fieldDescList, new Comparator<FieldDesc>() {
                 @Override public int compare(FieldDesc o1, FieldDesc o2) {
-                    return o1.getName().compareTo(o2.getName());
+                    int result = Boolean.compare(o1.isKey(), o2.isKey());
+                    if (result > 0) {
+                        return 1;
+                    }
+                    if (result == 0) {
+                        result = o1.getName().compareTo(o2.getName());
+                    }
+                    return result;
                 }
             });
 
-            Schema schema = inferSchemaForType(typeDesc.getTypeName(), typeDesc.getFields());
-            enrichSchemaByCustomizationMetaData(schema, recordTypeInfo, typeDesc.getFields());
+            Schema schema = inferSchemaForType(typeDesc.getTypeName(), fieldDescList);
+            enrichSchemaByCustomMetaData(schema, recordTypeInfo, fieldDescList);
 
             return schema;
         } catch (NetSuiteException e) {
@@ -155,7 +162,7 @@ public class NetSuiteDatasetRuntimeImpl implements NetSuiteDatasetRuntime {
             final TypeDesc typeDesc = metaDataSource.getTypeInfo(typeName);
 
             Schema schema = NetSuiteDatasetRuntimeImpl.inferSchemaForType(typeDesc.getTypeName(), typeDesc.getFields());
-            enrichSchemaByCustomizationMetaData(schema, recordTypeInfo, typeDesc.getFields());
+            enrichSchemaByCustomMetaData(schema, recordTypeInfo, typeDesc.getFields());
 
             return schema;
         } catch (NetSuiteException e) {
@@ -171,7 +178,7 @@ public class NetSuiteDatasetRuntimeImpl implements NetSuiteDatasetRuntime {
             final TypeDesc typeDesc = metaDataSource.getTypeInfo(refType.getTypeName());
 
             Schema schema = NetSuiteDatasetRuntimeImpl.inferSchemaForType(typeDesc.getTypeName(), typeDesc.getFields());
-            enrichSchemaByCustomizationMetaData(schema, referencedRecordTypeInfo, null);
+            enrichSchemaByCustomMetaData(schema, referencedRecordTypeInfo, null);
 
             return schema;
         } catch (NetSuiteException e) {
@@ -311,7 +318,7 @@ public class NetSuiteDatasetRuntimeImpl implements NetSuiteDatasetRuntime {
         return base;
     }
 
-    public static void enrichSchemaByCustomizationMetaData(final Schema schema,
+    public static void enrichSchemaByCustomMetaData(final Schema schema,
             final RecordTypeInfo recordTypeInfo, final Collection<FieldDesc> fieldDescList) {
 
         if (recordTypeInfo == null) {
@@ -321,23 +328,39 @@ public class NetSuiteDatasetRuntimeImpl implements NetSuiteDatasetRuntime {
 
         if (recordTypeInfo instanceof CustomRecordTypeInfo) {
             CustomRecordTypeInfo customRecordTypeInfo = (CustomRecordTypeInfo) recordTypeInfo;
-            JsonNode node = SchemaCustomMetaDataSource.writeCustomRecord(JsonNodeFactory.instance, customRecordTypeInfo);
-            schema.addProp(NS_CUSTOM_RECORD, node);
+            Schema.Field idField = getNsFieldByName(schema, "scriptId");
+            if (idField != null) {
+                JsonNode node = SchemaCustomMetaDataSource.writeCustomRecord(
+                        JsonNodeFactory.instance, customRecordTypeInfo);
+                idField.addProp(NetSuiteSchemaConstants.NS_CUSTOM_RECORD, node.toString());
+            }
         }
 
         if (fieldDescList != null && !fieldDescList.isEmpty()) {
-            Map<String, CustomFieldDesc> customFieldDescMap = new HashMap<>();
-            for (FieldDesc fieldDesc : fieldDescList) {
-                if (fieldDesc instanceof CustomFieldDesc) {
-                    CustomFieldDesc customFieldDesc = fieldDesc.asCustom();
-                    customFieldDescMap.put(customFieldDesc.getName(), customFieldDesc);
+            Map<String, CustomFieldDesc> customFieldDescMap = getCustomFieldDescMap(fieldDescList);
+            if (!customFieldDescMap.isEmpty()) {
+                for (Schema.Field field : schema.getFields()) {
+                    String nsFieldName = getNsFieldName(field);
+                    CustomFieldDesc customFieldDesc = customFieldDescMap.get(nsFieldName);
+                    if (customFieldDesc != null) {
+                        JsonNode node = SchemaCustomMetaDataSource.writeCustomField(
+                                JsonNodeFactory.instance, customFieldDesc);
+                        field.addProp(NetSuiteSchemaConstants.NS_CUSTOM_FIELD, node.toString());
+                    }
                 }
             }
-            if (!customFieldDescMap.isEmpty()) {
-                JsonNode node = SchemaCustomMetaDataSource.writeCustomFields(JsonNodeFactory.instance, customFieldDescMap);
-                schema.addProp(NS_CUSTOM_FIELDS, node.toString());
+        }
+    }
+
+    public static Map<String, CustomFieldDesc> getCustomFieldDescMap(Collection<FieldDesc> fieldDescList) {
+        Map<String, CustomFieldDesc> customFieldDescMap = new HashMap<>();
+        for (FieldDesc fieldDesc : fieldDescList) {
+            if (fieldDesc instanceof CustomFieldDesc) {
+                CustomFieldDesc customFieldDesc = fieldDesc.asCustom();
+                customFieldDescMap.put(customFieldDesc.getName(), customFieldDesc);
             }
         }
+        return customFieldDescMap;
     }
 
     public static Class<?> getCustomFieldValueClass(CustomFieldDesc fieldDesc) {
@@ -369,4 +392,20 @@ public class NetSuiteDatasetRuntimeImpl implements NetSuiteDatasetRuntime {
         }
         return valueClass;
     }
+
+    public static String getNsFieldName(Schema.Field field) {
+        String name = field.getProp(DiSchemaConstants.TALEND6_COLUMN_ORIGINAL_DB_COLUMN_NAME);
+        return name != null ? toInitialLower(name) : toInitialLower(field.name());
+    }
+
+    public static Schema.Field getNsFieldByName(Schema schema, String fieldName) {
+        for (Schema.Field field : schema.getFields()) {
+            String nsFieldName = getNsFieldName(field);
+            if (fieldName.equals(nsFieldName)) {
+                return field;
+            }
+        }
+        return null;
+    }
+
 }

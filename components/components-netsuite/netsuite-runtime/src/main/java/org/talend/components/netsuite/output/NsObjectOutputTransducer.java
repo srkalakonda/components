@@ -26,6 +26,7 @@ import java.util.Set;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.IndexedRecord;
 import org.talend.components.api.exception.ComponentException;
+import org.talend.components.netsuite.NetSuiteDatasetRuntimeImpl;
 import org.talend.components.netsuite.NsObjectTransducer;
 import org.talend.components.netsuite.client.NetSuiteClientService;
 import org.talend.components.netsuite.client.NetSuiteException;
@@ -102,13 +103,13 @@ public class NsObjectOutputTransducer extends NsObjectTransducer {
             return null;
         }
 
-        Schema.Field internalIdField = getNsFieldByName(schema, "internalId");
+        Schema.Field internalIdField = NetSuiteDatasetRuntimeImpl.getNsFieldByName(schema, "internalId");
         String internalId = internalIdField != null ? (String) indexedRecord.get(internalIdField.pos()) : null;
         if (internalId == null) {
             return null;
         }
 
-        Schema.Field externalIdField = getNsFieldByName(schema, "externalId");
+        Schema.Field externalIdField = NetSuiteDatasetRuntimeImpl.getNsFieldByName(schema, "externalId");
         String externalId = externalIdField != null ? (String) indexedRecord.get(externalIdField.pos()) : null;
         if (internalId == null && externalId == null) {
             return null;
@@ -120,7 +121,7 @@ public class NsObjectOutputTransducer extends NsObjectTransducer {
         ref.setInternalId(internalId);
         ref.setExternalId(externalId);
         if (recordTypeInfo instanceof CustomRecordTypeInfo) {
-            Schema.Field scriptIdField = getNsFieldByName(schema, "scriptId");
+            Schema.Field scriptIdField = NetSuiteDatasetRuntimeImpl.getNsFieldByName(schema, "scriptId");
             String scriptId = scriptIdField != null ? (String) indexedRecord.get(scriptIdField.pos()) : null;
             ref.setScriptId(scriptId);
         }
@@ -164,7 +165,7 @@ public class NsObjectOutputTransducer extends NsObjectTransducer {
             }
 
             for (Schema.Field field : schema.getFields()) {
-                String nsFieldName = getNsFieldName(field);
+                String nsFieldName = NetSuiteDatasetRuntimeImpl.getNsFieldName(field);
 
                 FieldDesc fieldDesc = fieldMap.get(nsFieldName);
                 if (fieldDesc == null) {

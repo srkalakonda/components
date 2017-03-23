@@ -15,8 +15,6 @@ package org.talend.components.netsuite.client;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 
@@ -155,16 +153,6 @@ public class DefaultMetaDataSource implements MetaDataSource {
                 }
             }
         }
-
-        Collections.sort(resultFieldDescList, new Comparator<FieldDesc>() {
-            @Override public int compare(FieldDesc o1, FieldDesc o2) {
-                int result = Boolean.compare(o1.isKey(), o2.isKey());
-                if (result == 0) {
-                    result = o1.getName().compareTo(o2.getName());
-                }
-                return result;
-            }
-        });
 
         return new TypeDesc(targetTypeName, targetTypeClass, resultFieldDescList);
     }

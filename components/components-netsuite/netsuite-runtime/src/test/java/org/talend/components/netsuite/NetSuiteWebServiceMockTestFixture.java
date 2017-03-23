@@ -18,7 +18,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
-import static org.talend.components.netsuite.NsObjectTransducer.getNsFieldName;
+import static org.talend.components.netsuite.NetSuiteDatasetRuntimeImpl.getNsFieldName;
 import static org.talend.components.netsuite.client.NetSuiteClientService.MESSAGE_LOGGING_ENABLED_PROPERTY_NAME;
 import static org.talend.components.netsuite.client.model.beans.Beans.getProperty;
 

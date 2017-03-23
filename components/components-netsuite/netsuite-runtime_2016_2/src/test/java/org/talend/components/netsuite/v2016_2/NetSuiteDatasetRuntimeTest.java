@@ -19,8 +19,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.talend.components.netsuite.NsObjectTransducer.getNsFieldByName;
+import static org.talend.components.netsuite.NetSuiteDatasetRuntimeImpl.getNsFieldByName;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -29,9 +28,11 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.avro.Schema;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.talend.components.netsuite.NetSuiteDatasetRuntime;
 import org.talend.components.netsuite.NetSuiteDatasetRuntimeImpl;
+import org.talend.components.netsuite.NetSuiteSchemaConstants;
 import org.talend.components.netsuite.SchemaCustomMetaDataSource;
 import org.talend.components.netsuite.client.CustomMetaDataSource;
 import org.talend.components.netsuite.client.EmptyCustomMetaDataSource;
@@ -63,7 +64,6 @@ public class NetSuiteDatasetRuntimeTest extends NetSuiteMockTestBase {
         TypeDesc typeDesc = clientService.getBasicMetaData().getTypeInfo("Account");
 
         Schema s = NetSuiteDatasetRuntimeImpl.inferSchemaForType(typeDesc.getTypeName(), typeDesc.getFields());
-//        System.out.println(s);
 
         assertThat(s.getType(), is(Schema.Type.RECORD));
         assertThat(s.getName(), is("Account"));
@@ -143,23 +143,20 @@ public class NetSuiteDatasetRuntimeTest extends NetSuiteMockTestBase {
         assertThat(s.getType(), is(Schema.Type.RECORD));
         assertThat(s.getName(), is("Account"));
         assertThat(s.getFields(), hasSize(typeDesc.getFields().size()));
-        assertThat(s.getObjectProps().keySet(), containsInAnyOrder(
-                NetSuiteDatasetRuntime.NS_CUSTOM_FIELDS
-        ));
-
-        JsonNode node = objectMapper.readTree(s.getProp(NetSuiteDatasetRuntime.NS_CUSTOM_FIELDS));
-        Map<String, CustomFieldDesc> customFieldDescMap = SchemaCustomMetaDataSource.readCustomFields(node);
+        assertThat(s.getObjectProps().keySet(), Matchers.<String>empty());
 
         CustomFieldDesc fieldDesc = (CustomFieldDesc) typeDesc.getField("custom_field_1");
         Schema.Field f = getNsFieldByName(s, fieldDesc.getName());
         assertUnionType(f.schema(), Arrays.asList(Schema.Type.STRING, Schema.Type.NULL));
         assertThat(f.getObjectProps().keySet(), containsInAnyOrder(
                 DiSchemaConstants.TALEND6_COLUMN_ORIGINAL_DB_COLUMN_NAME,
-                DiSchemaConstants.TALEND6_COLUMN_SOURCE_TYPE
+                DiSchemaConstants.TALEND6_COLUMN_SOURCE_TYPE,
+                NetSuiteSchemaConstants.NS_CUSTOM_FIELD
         ));
         assertThat(f.getProp(DiSchemaConstants.TALEND6_COLUMN_ORIGINAL_DB_COLUMN_NAME), is(fieldDesc.getName()));
-
-        assertTrue(customFieldDescMap.containsKey(fieldDesc.getName()));
+        CustomFieldDesc customFieldDesc = SchemaCustomMetaDataSource.readCustomField(
+                objectMapper.readTree(f.getProp(NetSuiteSchemaConstants.NS_CUSTOM_FIELD)));
+        assertThat(customFieldDesc.getName(), is(fieldDesc.getName()));
     }
 
     @Test

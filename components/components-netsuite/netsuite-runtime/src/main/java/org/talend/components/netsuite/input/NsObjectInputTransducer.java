@@ -19,7 +19,9 @@ import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.generic.IndexedRecord;
+import org.talend.components.netsuite.NetSuiteDatasetRuntimeImpl;
 import org.talend.components.netsuite.NsObjectTransducer;
+import org.talend.components.netsuite.SchemaCustomMetaDataSource;
 import org.talend.components.netsuite.client.NetSuiteClientService;
 import org.talend.components.netsuite.client.model.FieldDesc;
 import org.talend.components.netsuite.client.model.TypeDesc;
@@ -54,7 +56,7 @@ public class NsObjectInputTransducer extends NsObjectTransducer {
         GenericRecord indexedRecord = new GenericData.Record(runtimeSchema);
 
         for (Schema.Field field : runtimeSchema.getFields()) {
-            String nsFieldName = getNsFieldName(field);
+            String nsFieldName = NetSuiteDatasetRuntimeImpl.getNsFieldName(field);
 
             FieldDesc fieldDesc = fieldMap.get(nsFieldName);
             if (fieldDesc == null) {
@@ -78,6 +80,14 @@ public class NsObjectInputTransducer extends NsObjectTransducer {
             TypeDesc typeDescByClass = metaDataSource.getTypeInfo(nsObject.getClass());
             typeDesc = metaDataSource.getTypeInfo(typeDescByClass.getTypeName());
             runtimeSchema = getDynamicSchema(typeDesc, schema, typeDesc.getTypeName());
+
+            // Replace custom meta data source with SchemaCustomMetaDataSource
+            // which will be using new runtime schema
+            SchemaCustomMetaDataSource schemaCustomMetaDataSource = new SchemaCustomMetaDataSource(
+                    clientService.getBasicMetaData(),
+                    clientService.getMetaDataSource().getCustomMetaDataSource(),
+                    runtimeSchema);
+            metaDataSource.setCustomMetaDataSource(schemaCustomMetaDataSource);
         } else {
             typeDesc = metaDataSource.getTypeInfo(typeName);
             runtimeSchema = schema;

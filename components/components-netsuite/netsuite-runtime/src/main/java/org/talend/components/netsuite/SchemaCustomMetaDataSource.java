@@ -13,6 +13,8 @@
 
 package org.talend.components.netsuite;
 
+import static org.talend.components.netsuite.NetSuiteDatasetRuntimeImpl.getNsFieldByName;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
@@ -30,6 +32,7 @@ import org.talend.components.netsuite.client.model.RecordTypeDesc;
 import org.talend.components.netsuite.client.model.RecordTypeInfo;
 import org.talend.components.netsuite.client.model.RefType;
 import org.talend.components.netsuite.client.model.customfield.CustomFieldRefType;
+import org.talend.daikon.avro.AvroUtils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -62,7 +65,6 @@ public class SchemaCustomMetaDataSource implements CustomMetaDataSource {
 
         node.set("scriptId", nodeFactory.textNode(ref.getScriptId()));
         node.set("internalId", nodeFactory.textNode(ref.getInternalId()));
-        node.set("externalId", nodeFactory.textNode(ref.getExternalId()));
         node.set("customizationType", nodeFactory.textNode(ref.getType()));
         node.set("recordType", nodeFactory.textNode(recordTypeDesc.getType()));
 
@@ -72,7 +74,6 @@ public class SchemaCustomMetaDataSource implements CustomMetaDataSource {
     public CustomRecordTypeInfo readCustomRecord(JsonNode node) {
         String scriptId = node.get("scriptId").asText();
         String internalId = node.get("internalId").asText();
-        String externalId = node.get("externalId").asText(null);
         String customizationType = node.get("customizationType").asText();
         String recordType = node.get("recordType").asText();
 
@@ -80,7 +81,6 @@ public class SchemaCustomMetaDataSource implements CustomMetaDataSource {
         ref.setRefType(RefType.CUSTOMIZATION_REF);
         ref.setScriptId(scriptId);
         ref.setInternalId(internalId);
-        ref.setExternalId(externalId);
         ref.setType(customizationType);
 
         RecordTypeDesc recordTypeDesc = basicMetaData.getRecordType(recordType);
@@ -117,7 +117,6 @@ public class SchemaCustomMetaDataSource implements CustomMetaDataSource {
 
         node.set("scriptId", nodeFactory.textNode(ref.getScriptId()));
         node.set("internalId", nodeFactory.textNode(ref.getInternalId()));
-        node.set("externalId", nodeFactory.textNode(ref.getExternalId()));
         node.set("customizationType", nodeFactory.textNode(ref.getType()));
         node.set("valueType", nodeFactory.textNode(customFieldRefType.name()));
 
@@ -127,7 +126,6 @@ public class SchemaCustomMetaDataSource implements CustomMetaDataSource {
     public static CustomFieldDesc readCustomField(JsonNode node) {
         String scriptId = node.get("scriptId").asText();
         String internalId = node.get("internalId").asText();
-        String externalId = node.get("externalId").asText(null);
         String customizationType = node.get("customizationType").asText();
         String type = node.get("valueType").asText();
 
@@ -135,7 +133,6 @@ public class SchemaCustomMetaDataSource implements CustomMetaDataSource {
         ref.setRefType(RefType.CUSTOMIZATION_REF);
         ref.setScriptId(scriptId);
         ref.setInternalId(internalId);
-        ref.setExternalId(externalId);
         ref.setType(customizationType);
 
         CustomFieldRefType customFieldRefType = CustomFieldRefType.valueOf(type);
@@ -157,31 +154,39 @@ public class SchemaCustomMetaDataSource implements CustomMetaDataSource {
 
     @Override
     public Map<String, CustomFieldDesc> getCustomFields(RecordTypeInfo recordTypeInfo) {
-        String customFieldsJson = schema.getProp(NetSuiteDatasetRuntime.NS_CUSTOM_FIELDS);
-        if (StringUtils.isEmpty(customFieldsJson)) {
-            return defaultSource.getCustomFields(recordTypeInfo);
+        if (!AvroUtils.isIncludeAllFields(schema)) {
+            Map<String, CustomFieldDesc> customFieldDescMap = new HashMap<>();
+            for (Schema.Field field : schema.getFields()) {
+                String customFieldJson = field.getProp(NetSuiteSchemaConstants.NS_CUSTOM_FIELD);
+                if (StringUtils.isNotEmpty(customFieldJson)) {
+                    try {
+                        JsonNode node = objectMapper.readTree(customFieldJson);
+                        CustomFieldDesc customFieldDesc = readCustomField(node);
+                        customFieldDescMap.put(customFieldDesc.getName(), customFieldDesc);
+                    } catch (IOException e) {
+                        throw new NetSuiteException(e.getMessage(), e);
+                    }
+                }
+            }
         }
-        try {
-            JsonNode node = objectMapper.readTree(customFieldsJson);
-            Map<String, CustomFieldDesc> customFieldDescMap = readCustomFields(node);
-            return customFieldDescMap;
-        } catch (IOException e) {
-            throw new NetSuiteException(e.getMessage(), e);
-        }
+        return defaultSource.getCustomFields(recordTypeInfo);
     }
 
     @Override
     public CustomRecordTypeInfo getCustomRecordType(String typeName) {
-        String customRecordJson = schema.getProp(NetSuiteDatasetRuntime.NS_CUSTOM_RECORD);
-        if (StringUtils.isEmpty(customRecordJson)) {
-            return defaultSource.getCustomRecordType(typeName);
+        Schema.Field idField = getNsFieldByName(schema, "scriptId");
+        if (idField != null) {
+            String customRecordJson = idField.getProp(NetSuiteSchemaConstants.NS_CUSTOM_RECORD);
+            if (StringUtils.isEmpty(customRecordJson)) {
+                try {
+                    JsonNode node = objectMapper.readTree(customRecordJson);
+                    CustomRecordTypeInfo customRecordTypeInfo = readCustomRecord(node);
+                    return customRecordTypeInfo;
+                } catch (IOException e) {
+                    throw new NetSuiteException(e.getMessage(), e);
+                }
+            }
         }
-        try {
-            JsonNode node = objectMapper.readTree(customRecordJson);
-            CustomRecordTypeInfo customRecordTypeInfo = readCustomRecord(node);
-            return customRecordTypeInfo;
-        } catch (IOException e) {
-            throw new NetSuiteException(e.getMessage(), e);
-        }
+        return defaultSource.getCustomRecordType(typeName);
     }
 }

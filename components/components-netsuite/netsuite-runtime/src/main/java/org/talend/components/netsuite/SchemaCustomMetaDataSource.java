@@ -168,6 +168,7 @@ public class SchemaCustomMetaDataSource implements CustomMetaDataSource {
                     }
                 }
             }
+            return customFieldDescMap;
         }
         return defaultSource.getCustomFields(recordTypeInfo);
     }

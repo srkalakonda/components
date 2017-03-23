@@ -38,46 +38,6 @@ public class FilterExpressionTable extends ComponentPropertiesImpl {
 
     public static final String ADD_QUOTES = "ADD_QUOTES";
 
-    public static final String COMPARISON_EQUAL = "EQUAL";
-
-    public static final String COMPARISON_NOT_EQUAL = "NOT EQUAL";
-
-    public static final String COMPARISON_GREATER_THAN = "GREATER THAN";
-
-    public static final String COMPARISON_GREATER_THAN_OR_EQUAL = "GREATER THAN OR EQUAL";
-
-    public static final String COMPARISON_LESS_THAN = "LESS THAN";
-
-    public static final String COMPARISON_LESS_THAN_OR_EQUAL = "LESS THAN OR EQUAL";
-
-    public static final String PREDICATE_AND = "AND";
-
-    public static final String PREDICATE_OR = "OR";
-
-    public static final String PREDICATE_NOT = "NOT";
-
-    public static final String FIELD_TYPE_STRING = "STRING";
-
-    public static final String FIELD_TYPE_NUMERIC = "NUMERIC";
-
-    public static final String FIELD_TYPE_DATE = "DATE";
-
-    public static final String FIELD_TYPE_INT64 = "INT64";
-
-    public static final String FIELD_TYPE_BINARY = "BINARY";
-
-    public static final String FIELD_TYPE_GUID = "GUID";
-
-    public static final String FIELD_TYPE_BOOLEAN = "BOOLEAN";
-
-    public static final String[] COMPARISONS = { COMPARISON_EQUAL, COMPARISON_NOT_EQUAL, COMPARISON_GREATER_THAN,
-            COMPARISON_GREATER_THAN_OR_EQUAL, COMPARISON_LESS_THAN, COMPARISON_LESS_THAN_OR_EQUAL };
-
-    public static final String[] PREDICATES = { PREDICATE_AND, PREDICATE_OR, PREDICATE_NOT };
-
-    public static final String[] FIELD_TYPES = { FIELD_TYPE_STRING, FIELD_TYPE_NUMERIC, FIELD_TYPE_DATE, FIELD_TYPE_INT64,
-            FIELD_TYPE_BOOLEAN, FIELD_TYPE_BINARY, FIELD_TYPE_GUID };
-
     public static final TypeLiteral<List<String>> LIST_STRING_TYPE = new TypeLiteral<List<String>>() {
     };
 
@@ -107,9 +67,9 @@ public class FilterExpressionTable extends ComponentPropertiesImpl {
 
         column.setPossibleValues(Arrays.asList("PartitionKey", "RowKey", "Timestamp"));
         operand.setPossibleValues(Arrays.asList("US Customers", "UKey", "2018-01-01"));
-        function.setPossibleValues(COMPARISONS);
-        predicate.setPossibleValues(PREDICATES);
-        fieldType.setPossibleValues(FIELD_TYPES);
+        function.setPossibleValues(Comparison.possibleValues());
+        predicate.setPossibleValues(Predicate.possibleValues());
+        fieldType.setPossibleValues(SupportedFieldType.possibleValues());
     }
 
     @Override
@@ -125,18 +85,18 @@ public class FilterExpressionTable extends ComponentPropertiesImpl {
     }
 
     public String getComparison(String f) {
-        switch (f) {
-        case COMPARISON_EQUAL:
+        switch (Comparison.parse(f)) {
+        case EQUAL:
             return QueryComparisons.EQUAL;
-        case COMPARISON_NOT_EQUAL:
+        case NOT_EQUAL:
             return QueryComparisons.NOT_EQUAL;
-        case COMPARISON_GREATER_THAN:
+        case GREATER_THAN:
             return QueryComparisons.GREATER_THAN;
-        case COMPARISON_GREATER_THAN_OR_EQUAL:
+        case GREATER_THAN_OR_EQUAL:
             return QueryComparisons.GREATER_THAN_OR_EQUAL;
-        case COMPARISON_LESS_THAN:
+        case LESS_THAN:
             return QueryComparisons.LESS_THAN;
-        case COMPARISON_LESS_THAN_OR_EQUAL:
+        case LESS_THAN_OR_EQUAL:
             return QueryComparisons.LESS_THAN_OR_EQUAL;
         default:
             return null;
@@ -144,12 +104,13 @@ public class FilterExpressionTable extends ComponentPropertiesImpl {
     }
 
     public String getOperator(String p) {
-        switch (p) {
-        case PREDICATE_AND:
+
+        switch (Predicate.parse(p)) {
+        case AND:
             return Operators.AND;
-        case PREDICATE_OR:
+        case OR:
             return Operators.OR;
-        case PREDICATE_NOT:
+        case NOT:
             return Operators.NOT;
         default:
             return null;
@@ -157,20 +118,20 @@ public class FilterExpressionTable extends ComponentPropertiesImpl {
     }
 
     public EdmType getType(String ft) {
-        switch (ft) {
-        case FIELD_TYPE_STRING:
+        switch (SupportedFieldType.parse(ft)) {
+        case STRING:
             return EdmType.STRING;
-        case FIELD_TYPE_NUMERIC:
+        case NUMERIC:
             return EdmType.INT32;
-        case FIELD_TYPE_INT64:
+        case INT64:
             return EdmType.INT64;
-        case FIELD_TYPE_DATE:
+        case DATE:
             return EdmType.DATE_TIME;
-        case FIELD_TYPE_BINARY:
+        case BINARY:
             return EdmType.BINARY;
-        case FIELD_TYPE_GUID:
+        case GUID:
             return EdmType.GUID;
-        case FIELD_TYPE_BOOLEAN:
+        case BOOLEAN:
             return EdmType.BOOLEAN;
         default:
             return null;

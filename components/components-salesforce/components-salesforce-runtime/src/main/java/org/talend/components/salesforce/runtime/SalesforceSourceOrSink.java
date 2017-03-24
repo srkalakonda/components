@@ -19,7 +19,9 @@ import java.io.IOException;
 import java.net.Authenticator;
 import java.net.PasswordAuthentication;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import javax.xml.namespace.QName;
@@ -47,6 +49,7 @@ import org.talend.components.salesforce.soql.SoqlQuery;
 import org.talend.daikon.NamedThing;
 import org.talend.daikon.SimpleNamedThing;
 import org.talend.daikon.avro.AvroUtils;
+import org.talend.daikon.avro.SchemaConstants;
 import org.talend.daikon.properties.ValidationResult;
 import org.talend.daikon.runtime.RuntimeInfo;
 import org.talend.daikon.runtime.RuntimeUtil;
@@ -70,8 +73,6 @@ public class SalesforceSourceOrSink implements SalesforceRuntimeSourceOrSink, Sa
     private transient static final Logger LOG = LoggerFactory.getLogger(SalesforceSourceOrSink.class);
 
     protected SalesforceProvideConnectionProperties properties;
-
-    private transient static final Schema DEFAULT_GUESS_SCHEMA_TYPE = AvroUtils._string();
 
     protected static final String API_VERSION = "34.0";
 
@@ -421,7 +422,7 @@ public class SalesforceSourceOrSink implements SalesforceRuntimeSourceOrSink, Sa
                 }
             }
         } catch (IOException e) {
-            throw new ConnectionException("Reuse session fails!", e);
+            throw new ConnectionException(SalesforceConstants.REUSE_SESSION_FAILS, e);
         }
         return null;
     }
@@ -456,7 +457,7 @@ public class SalesforceSourceOrSink implements SalesforceRuntimeSourceOrSink, Sa
                 sessionOutput.close();
             }
         } catch (IOException e) {
-            throw new ConnectionException("Reuse session fails!", e);
+            throw new ConnectionException(SalesforceConstants.REUSE_SESSION_FAILS, e);
         }
     }
 
@@ -491,18 +492,64 @@ public class SalesforceSourceOrSink implements SalesforceRuntimeSourceOrSink, Sa
 
         Schema entitySchema = SalesforceAvroRegistry.get().inferSchema(describeSObjectResult);
 
+        final List<FieldDescription> logicalTypesList = new ArrayList<>();
+        final List<FieldDescription> precisionList = new ArrayList<>();
+        final List<FieldDescription> lengthList = new ArrayList<>();
+
         for (FieldDescription fieldDescription : fieldDescriptions) {
-            Schema.Field schemaField = entitySchema.getField(fieldDescription.getSimpleName());
             Schema fieldType = null;
-            if (schemaField != null) {
-                fieldType = schemaField.schema();
+            Schema.Field field = entitySchema.getField(fieldDescription.getSimpleName());
+
+            if (field != null) {
+                Schema s = AvroUtils.unwrapIfNullable(field.schema());
+
+                if (s.getType() == Schema.Type.LONG) {
+                    String javaClass = s.getProp("java-class");
+                    if (javaClass != null && !javaClass.isEmpty() && javaClass.equals("java.util.Date")) {
+                        logicalTypesList.add(fieldDescription);
+                    }
+                }
+                if (s.getType() == Schema.Type.STRING) {
+                    lengthList.add(fieldDescription);
+                }
+                if (s.getType() == Schema.Type.DOUBLE) {
+                    precisionList.add(fieldDescription);
+                }
+
+                fieldType = AvroUtils.wrapAsNullable(s);
             } else {
-                fieldType = DEFAULT_GUESS_SCHEMA_TYPE;
+                fieldType = SalesforceConstants.DEFAULT_GUESS_SCHEMA_TYPE;
             }
+
             fieldAssembler.name(fieldDescription.getFullName()).type(fieldType).noDefault();
         }
 
-        return (Schema) fieldAssembler.endRecord();
+        return addSpecificProps((Schema) fieldAssembler.endRecord(),
+                new HashMap<String, List<FieldDescription>>() {{
+                    put(SchemaConstants.TALEND_COLUMN_PATTERN, logicalTypesList);
+                    put(SchemaConstants.TALEND_COLUMN_DB_LENGTH, lengthList);
+                    put(SchemaConstants.TALEND_COLUMN_PRECISION, precisionList);
+                }});
+    }
+
+    private Schema addSpecificProps(Schema schema, Map<String, List<FieldDescription>> map) {
+        for (Map.Entry<String, List<FieldDescription>> entry : map.entrySet()) {
+            for (FieldDescription fieldDescription : entry.getValue()) {
+                if (entry.getKey().equals(SchemaConstants.TALEND_COLUMN_PATTERN)) {
+                    schema.getField(fieldDescription.getSimpleName())
+                            .addProp(entry.getKey(), SalesforceConstants.SALESFORCE_DEFAULT_DATE_PATTERN);
+                }
+                if (entry.getKey().equals(SchemaConstants.TALEND_COLUMN_DB_LENGTH)) {
+                    schema.getField(fieldDescription.getSimpleName())
+                            .addProp(entry.getKey(), String.valueOf(SalesforceConstants.DEFAULT_LENGTH));
+                }
+                if (entry.getKey().equals(SchemaConstants.TALEND_COLUMN_PRECISION)) {
+                    schema.getField(fieldDescription.getSimpleName())
+                            .addProp(entry.getKey(), String.valueOf(SalesforceConstants.DEFAULT_PRECISION));
+                }
+            }
+        }
+        return schema;
     }
 
 	/**

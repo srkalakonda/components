@@ -14,6 +14,8 @@ package org.talend.components.azurestorage.table.helpers;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.talend.components.azurestorage.table.helpers.SupportedFieldType.BINARY;
 import static org.talend.components.azurestorage.table.helpers.SupportedFieldType.BOOLEAN;
 import static org.talend.components.azurestorage.table.helpers.SupportedFieldType.DATE;
@@ -28,7 +30,6 @@ import java.util.List;
 
 import org.junit.Test;
 import org.talend.components.azurestorage.table.AzureStorageTableProperties;
-import org.talend.daikon.properties.ValidationResult;
 
 import com.microsoft.azure.storage.table.EdmType;
 import com.microsoft.azure.storage.table.TableQuery.Operators;
@@ -92,7 +93,7 @@ public class FilterExpressionTableTest {
         predicates.add(Predicate.NOT.toString());
         fieldTypes.add(STRING.toString());
         setTableVals();
-        query = fet.getCombinedFilterConditions();
+        query = fet.generateCombinedFilterConditions();
         assertEquals(query, "PartitionKey eq '12345'");
         //
         columns.add(AzureStorageTableProperties.TABLE_ROW_KEY);
@@ -101,7 +102,7 @@ public class FilterExpressionTableTest {
         predicates.add(Predicate.AND.toString());
         fieldTypes.add(STRING.toString());
         setTableVals();
-        query = fet.getCombinedFilterConditions();
+        query = fet.generateCombinedFilterConditions();
         assertEquals(query, "(PartitionKey eq '12345') and (RowKey gt 'AVID12345')");
         //
         columns.add(AzureStorageTableProperties.TABLE_TIMESTAMP);
@@ -110,7 +111,7 @@ public class FilterExpressionTableTest {
         predicates.add(Predicate.OR.toString());
         fieldTypes.add(DATE.toString());
         setTableVals();
-        query = fet.getCombinedFilterConditions();
+        query = fet.generateCombinedFilterConditions();
         assertEquals(query,
                 "((PartitionKey eq '12345') and (RowKey gt 'AVID12345')) or (Timestamp ge datetime'2016-01-01 00:00:00')");
         //
@@ -120,7 +121,7 @@ public class FilterExpressionTableTest {
         predicates.add(Predicate.OR.toString());
         fieldTypes.add(STRING.toString());
         setTableVals();
-        query = fet.getCombinedFilterConditions();
+        query = fet.generateCombinedFilterConditions();
         assertEquals(query,
                 "(((PartitionKey eq '12345') and (RowKey gt 'AVID12345')) or (Timestamp ge datetime'2016-01-01 00:00:00')) or (AnUnknownProperty lt 'WEB345')");
 
@@ -131,7 +132,7 @@ public class FilterExpressionTableTest {
         predicates.add(Predicate.AND.toString());
         fieldTypes.add(BOOLEAN.toString());
         setTableVals();
-        query = fet.getCombinedFilterConditions();
+        query = fet.generateCombinedFilterConditions();
         assertEquals(
                 "((((PartitionKey eq '12345') and (RowKey gt 'AVID12345')) or (Timestamp ge datetime'2016-01-01 00:00:00')) or (AnUnknownProperty lt 'WEB345')) and (ABooleanProperty eq true)",
                 query);
@@ -142,28 +143,31 @@ public class FilterExpressionTableTest {
     public void testValidateFilterExpession() {
         clearLists();
         // empty
-        assertEquals(ValidationResult.OK, fet.validateFilterExpession());
+        assertTrue(fet.generateCombinedFilterConditions().isEmpty());
         // ok
         columns.add(AzureStorageTableProperties.TABLE_PARTITION_KEY);
         functions.add(Comparison.EQUAL.toString());
         values.add("12345");
         predicates.add(Predicate.NOT.toString());
+        fieldTypes.add(SupportedFieldType.STRING.toString());
         setTableVals();
-        assertEquals(ValidationResult.OK, fet.validateFilterExpession());
+        assertFalse(fet.generateCombinedFilterConditions().isEmpty());
         // missing value
         columns.add(AzureStorageTableProperties.TABLE_ROW_KEY);
         functions.add(Comparison.GREATER_THAN.toString());
         values.add("");
         predicates.add(Predicate.AND.toString());
+        fieldTypes.add(SupportedFieldType.INT64.toString());
         setTableVals();
-        assertEquals(ValidationResult.Result.ERROR, fet.validateFilterExpession().getStatus());
+        assertTrue(fet.generateCombinedFilterConditions().isEmpty());
         // missing column
         columns.add("");
         functions.add(Comparison.GREATER_THAN.toString());
         values.add("123456");
+        fieldTypes.add(SupportedFieldType.INT64.toString());
         predicates.add(Predicate.AND.toString());
         setTableVals();
-        assertEquals(ValidationResult.Result.ERROR, fet.validateFilterExpession().getStatus());
+        assertTrue(fet.generateCombinedFilterConditions().isEmpty());
     }
 
     @Test

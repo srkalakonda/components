@@ -14,15 +14,14 @@ package org.talend.components.azurestorage.table.helpers;
 
 import static org.talend.daikon.properties.property.PropertyFactory.newProperty;
 
-import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.TypeLiteral;
 import org.talend.components.api.properties.ComponentPropertiesImpl;
 import org.talend.daikon.i18n.GlobalI18N;
 import org.talend.daikon.i18n.I18nMessages;
-import org.talend.daikon.properties.ValidationResult;
-import org.talend.daikon.properties.ValidationResult.Result;
 import org.talend.daikon.properties.presentation.Form;
 import org.talend.daikon.properties.presentation.Widget;
 import org.talend.daikon.properties.property.Property;
@@ -34,7 +33,7 @@ import com.microsoft.azure.storage.table.TableQuery.QueryComparisons;
 
 public class FilterExpressionTable extends ComponentPropertiesImpl {
 
-    private static final long serialVersionUID = -5175064100089239187L;
+    private static final long serialVersionUID = 7449848799595979627L;
 
     public static final String ADD_QUOTES = "ADD_QUOTES";
 
@@ -51,25 +50,45 @@ public class FilterExpressionTable extends ComponentPropertiesImpl {
 
     public Property<List<String>> fieldType = newProperty(LIST_STRING_TYPE, "fieldType");
 
+    private final List<String> schemaColumnNames = new LinkedList<>();
+
     private static final I18nMessages i18nMessages = GlobalI18N.getI18nMessageProvider()
             .getI18nMessages(FilterExpressionTable.class);
 
     public FilterExpressionTable(String name) {
         super(name);
+        updateColumnsNames();
+    }
+
+    public void updateSchemaColumnNames(List<String> columnNames) {
+        this.schemaColumnNames.clear();
+        if (columnNames != null) {
+            this.schemaColumnNames.addAll(columnNames);
+            updateColumnsNames();
+        }
+    }
+
+    private void updateColumnsNames() {
+        column.setPossibleValues(schemaColumnNames);
+        if (schemaColumnNames.isEmpty()) {
+            column.setValue(null);
+            function.setValue(null);
+            operand.setValue(null);
+            predicate.setValue(null);
+            fieldType.setValue(null);
+        }
     }
 
     @Override
     public void setupProperties() {
         super.setupProperties();
 
-        column.setTaggedValue(ADD_QUOTES, true);
         operand.setTaggedValue(ADD_QUOTES, true);
-
-        column.setPossibleValues(Arrays.asList("PartitionKey", "RowKey", "Timestamp"));
-        operand.setPossibleValues(Arrays.asList("US Customers", "UKey", "2018-01-01"));
         function.setPossibleValues(Comparison.possibleValues());
         predicate.setPossibleValues(Predicate.possibleValues());
         fieldType.setPossibleValues(SupportedFieldType.possibleValues());
+
+        updateColumnsNames();
     }
 
     @Override
@@ -77,7 +96,7 @@ public class FilterExpressionTable extends ComponentPropertiesImpl {
         super.setupLayout();
 
         Form mainForm = new Form(this, Form.MAIN);
-        mainForm.addColumn(column);
+        mainForm.addColumn(Widget.widget(column).setWidgetType(Widget.ENUMERATION_WIDGET_TYPE));
         mainForm.addColumn(Widget.widget(function).setWidgetType(Widget.ENUMERATION_WIDGET_TYPE));
         mainForm.addColumn(operand);
         mainForm.addColumn(Widget.widget(predicate).setWidgetType(Widget.ENUMERATION_WIDGET_TYPE));
@@ -138,52 +157,50 @@ public class FilterExpressionTable extends ComponentPropertiesImpl {
         }
     }
 
-    public int size() {
-        if (column.getValue() != null && !column.getValue().isEmpty())
-            return column.getValue().size();
-        else
-            return 0;
-    }
+    private boolean canGenerateFilterExpession() {
 
-    public ValidationResult validateFilterExpession() {
-        Boolean filterOk = true;
-        if (size() == 0)
-            return ValidationResult.OK;
-        for (int idx = 0; idx < column.getValue().size(); idx++) {
-            filterOk = filterOk && (!column.getValue().get(idx).isEmpty()) && (!operand.getValue().get(idx).isEmpty());
-            if (!filterOk) {
-                ValidationResult vr = new ValidationResult();
-                vr.setStatus(Result.ERROR);
-                vr.setMessage(i18nMessages.getMessage("error.MissName"));
-                return vr;
+        if (column.getValue() == null || fieldType.getValue() == null || function.getValue() == null || operand.getValue() == null
+                || predicate.getValue() == null) {
+
+            return false;
+        }
+
+        boolean canGenerate = true;
+        for (int i = 0; i < column.getValue().size(); i++) {
+            canGenerate = canGenerate && StringUtils.isNotEmpty(column.getValue().get(i))
+                    && StringUtils.isNotEmpty(fieldType.getValue().get(i)) && StringUtils.isNotEmpty(function.getValue().get(i))
+                    && StringUtils.isNotEmpty(operand.getValue().get(i)) && StringUtils.isNotEmpty(predicate.getValue().get(i));
+
+            if (!canGenerate) {
+                return false;
             }
         }
 
-        return ValidationResult.OK;
+        return true;
     }
 
-    public String getCombinedFilterConditions() {
+    public String generateCombinedFilterConditions() {
         String filter = "";
-        if (validateFilterExpession().getStatus().equals(Result.ERROR))
-            return filter;
-        for (int idx = 0; idx < size(); idx++) {
-            String c = column.getValue().get(idx);
-            String cfn = function.getValue().get(idx);
-            String cop = predicate.getValue().get(idx);
-            String typ = fieldType.getValue().get(idx);
+        if (canGenerateFilterExpession()) {
+            for (int idx = 0; idx < column.getValue().size(); idx++) {
+                String c = column.getValue().get(idx);
+                String cfn = function.getValue().get(idx);
+                String cop = predicate.getValue().get(idx);
+                String typ = fieldType.getValue().get(idx);
 
-            String f = getComparison(cfn);
-            String v = operand.getValue().get(idx);
-            String p = getOperator(cop);
+                String f = getComparison(cfn);
+                String v = operand.getValue().get(idx);
+                String p = getOperator(cop);
 
-            EdmType t = getType(typ);
+                EdmType t = getType(typ);
 
-            String flt = TableQuery.generateFilterCondition(c, f, v, t);
+                String flt = TableQuery.generateFilterCondition(c, f, v, t);
 
-            if (!filter.isEmpty()) {
-                filter = TableQuery.combineFilters(filter, p, flt);
-            } else {
-                filter = flt;
+                if (!filter.isEmpty()) {
+                    filter = TableQuery.combineFilters(filter, p, flt);
+                } else {
+                    filter = flt;
+                }
             }
         }
         return filter;

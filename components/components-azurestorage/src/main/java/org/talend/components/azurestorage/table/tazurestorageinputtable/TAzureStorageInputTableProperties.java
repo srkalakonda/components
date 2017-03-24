@@ -47,12 +47,18 @@ public class TAzureStorageInputTableProperties extends AzureStorageTableProperti
 
     public Property<String> producedFilter = newString("producedFilter");
 
-    private ISchemaListener schemaListener;
-
     private transient static final Logger LOG = LoggerFactory.getLogger(TAzureStorageInputTableProperties.class);
 
     public TAzureStorageInputTableProperties(String name) {
         super(name);
+
+        setSchemaListener(new ISchemaListener() {
+
+            @Override
+            public void afterSchema() {
+                updateFilterExpressionTable();
+            }
+        });
     }
 
     @Override
@@ -88,14 +94,7 @@ public class TAzureStorageInputTableProperties extends AzureStorageTableProperti
         useFilterExpression.setValue(false);
         producedFilter.setValue("");
         producedFilter.setTaggedValue(ADD_QUOTES, true);
-        filterExpression.column.setPossibleValues(getSchemaFields());
-        schemaListener = new ISchemaListener() {
 
-            @Override
-            public void afterSchema() {
-                updateSchemaRelated();
-            }
-        };
     }
 
     @Override
@@ -119,14 +118,16 @@ public class TAzureStorageInputTableProperties extends AzureStorageTableProperti
 
         if (form.getName().equals(Form.MAIN)) {
             form.getWidget(filterExpression.getName()).setVisible(useFilterExpression.getValue());
+            form.getWidget(producedFilter.getName()).setVisible(useFilterExpression.getValue());
             if (useFilterExpression.getValue()) {
-                form.getWidget(producedFilter.getName()).setVisible(true);
-                if (filterExpression.size() > 0)
-                    producedFilter.setValue(filterExpression.getCombinedFilterConditions());
-                else
-                    producedFilter.setValue("");
+                producedFilter.setValue(filterExpression.generateCombinedFilterConditions());
             }
         }
+    }
+
+    protected void updateFilterExpressionTable() {
+        List<String> fieldNames = getSchemaFields();
+        filterExpression.updateSchemaColumnNames(fieldNames);
     }
 
     public void afterUseFilterExpression() {
@@ -139,15 +140,8 @@ public class TAzureStorageInputTableProperties extends AzureStorageTableProperti
         refreshLayout(getForm(Form.ADVANCED));
     }
 
-    public void updateSchemaRelated() {
-        filterExpression.column.setPossibleValues(getSchemaFields());
-        filterExpression.refreshLayout(getForm(Form.MAIN));
-        refreshLayout(getForm(Form.MAIN));
-        refreshLayout(getForm(Form.ADVANCED));
-    }
-
     public List<String> getSchemaFields() {
-        List<String> fields = new ArrayList<>();
+        List<String> fields = new ArrayList<String>();
         for (Field f : schema.schema.getValue().getFields()) {
             fields.add(f.name());
         }

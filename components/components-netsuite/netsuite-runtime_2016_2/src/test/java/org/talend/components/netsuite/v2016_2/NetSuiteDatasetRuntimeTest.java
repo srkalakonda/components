@@ -33,7 +33,6 @@ import org.junit.Test;
 import org.talend.components.netsuite.NetSuiteDatasetRuntime;
 import org.talend.components.netsuite.NetSuiteDatasetRuntimeImpl;
 import org.talend.components.netsuite.NetSuiteSchemaConstants;
-import org.talend.components.netsuite.SchemaCustomMetaDataSource;
 import org.talend.components.netsuite.client.CustomMetaDataSource;
 import org.talend.components.netsuite.client.EmptyCustomMetaDataSource;
 import org.talend.components.netsuite.client.MetaDataSource;
@@ -43,6 +42,7 @@ import org.talend.components.netsuite.client.model.CustomFieldDesc;
 import org.talend.components.netsuite.client.model.FieldDesc;
 import org.talend.components.netsuite.client.model.RecordTypeInfo;
 import org.talend.components.netsuite.client.model.TypeDesc;
+import org.talend.components.netsuite.test.TestUtils;
 import org.talend.components.netsuite.v2016_2.client.NetSuiteClientServiceImpl;
 import org.talend.daikon.avro.SchemaConstants;
 import org.talend.daikon.di.DiSchemaConstants;
@@ -121,7 +121,7 @@ public class NetSuiteDatasetRuntimeTest extends NetSuiteMockTestBase {
                         JsonNode fieldListNode = objectMapper.readTree(NetSuiteDatasetRuntimeTest.class.getResource(
                                 "/test-data/customFields-1.json"));
                         Map<String, CustomFieldDesc> customFieldDescMap =
-                                SchemaCustomMetaDataSource.readCustomFields(fieldListNode);
+                                TestUtils.readCustomFields(fieldListNode);
                         return customFieldDescMap;
                     }
                     return null;
@@ -151,11 +151,14 @@ public class NetSuiteDatasetRuntimeTest extends NetSuiteMockTestBase {
         assertThat(f.getObjectProps().keySet(), containsInAnyOrder(
                 DiSchemaConstants.TALEND6_COLUMN_ORIGINAL_DB_COLUMN_NAME,
                 DiSchemaConstants.TALEND6_COLUMN_SOURCE_TYPE,
-                NetSuiteSchemaConstants.NS_CUSTOM_FIELD
+                NetSuiteSchemaConstants.NS_CUSTOM_FIELD,
+                NetSuiteSchemaConstants.NS_CUSTOM_FIELD_SCRIPT_ID,
+                NetSuiteSchemaConstants.NS_CUSTOM_FIELD_INTERNAL_ID,
+                NetSuiteSchemaConstants.NS_CUSTOM_FIELD_CUSTOMIZATION_TYPE,
+                NetSuiteSchemaConstants.NS_CUSTOM_FIELD_TYPE
         ));
         assertThat(f.getProp(DiSchemaConstants.TALEND6_COLUMN_ORIGINAL_DB_COLUMN_NAME), is(fieldDesc.getName()));
-        CustomFieldDesc customFieldDesc = SchemaCustomMetaDataSource.readCustomField(
-                objectMapper.readTree(f.getProp(NetSuiteSchemaConstants.NS_CUSTOM_FIELD)));
+        CustomFieldDesc customFieldDesc = NetSuiteDatasetRuntimeImpl.readCustomField(f);
         assertThat(customFieldDesc.getName(), is(fieldDesc.getName()));
     }
 

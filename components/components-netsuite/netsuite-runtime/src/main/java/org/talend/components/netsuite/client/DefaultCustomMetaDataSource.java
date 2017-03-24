@@ -45,17 +45,13 @@ public abstract class DefaultCustomMetaDataSource<PortT> implements CustomMetaDa
 
     protected NetSuiteClientService<PortT> clientService;
 
-    public DefaultCustomMetaDataSource(NetSuiteClientService<PortT> clientService) {
-        this.clientService = clientService;
-    }
-
     protected Map<String, CustomRecordTypeInfo> customRecordTypeMap = new HashMap<>();
 
     protected boolean customRecordTypesLoaded = false;
 
     protected Map<BasicRecordType, List<Object>> customFieldMap = new HashMap<>();
 
-    protected Map<RecordTypeDesc, Map<String, CustomFieldDesc>> recordCustomFieldMap = new HashMap<>();
+    protected Map<String, Map<String, CustomFieldDesc>> recordCustomFieldMap = new HashMap<>();
 
     protected boolean customFieldsLoaded = false;
 
@@ -64,6 +60,10 @@ public abstract class DefaultCustomMetaDataSource<PortT> implements CustomMetaDa
     protected static final List<BasicRecordType> fieldCustomizationTypes = Collections.unmodifiableList(
             Arrays.asList(BasicRecordType.CRM_CUSTOM_FIELD, BasicRecordType.ENTITY_CUSTOM_FIELD, BasicRecordType.ITEM_CUSTOM_FIELD,
                     BasicRecordType.OTHER_CUSTOM_FIELD, BasicRecordType.TRANSACTION_BODY_CUSTOM_FIELD, BasicRecordType.TRANSACTION_COLUMN_CUSTOM_FIELD));
+
+    public DefaultCustomMetaDataSource(NetSuiteClientService<PortT> clientService) {
+        this.clientService = clientService;
+    }
 
     @Override
     public Collection<CustomRecordTypeInfo> getCustomRecordTypes() {
@@ -97,31 +97,20 @@ public abstract class DefaultCustomMetaDataSource<PortT> implements CustomMetaDa
 
     protected Map<String, CustomFieldDesc> getCustomFieldsImpl(RecordTypeInfo recordTypeInfo) throws NetSuiteException {
         RecordTypeDesc recordType = recordTypeInfo.getRecordType();
-
         Map<String, CustomFieldDesc> fieldDescMap;
-
         if (recordTypeInfo instanceof CustomRecordTypeInfo) {
-            retrieveCustomRecordCustomFields((CustomRecordTypeInfo) recordTypeInfo);
             fieldDescMap = customRecordCustomFieldMap.get(recordTypeInfo.getName());
+            if (fieldDescMap == null) {
+                retrieveCustomRecordCustomFields((CustomRecordTypeInfo) recordTypeInfo);
+                fieldDescMap = customRecordCustomFieldMap.get(recordTypeInfo.getName());
+            }
         } else {
-            retrieveCustomFields();
-
             fieldDescMap = recordCustomFieldMap.get(recordType.getType());
             if (fieldDescMap == null) {
-                fieldDescMap = new HashMap<>();
-
-                for (BasicRecordType customizationType : fieldCustomizationTypes) {
-                    List<Object> customFieldList = customFieldMap.get(customizationType);
-
-                    Map<String, CustomFieldDesc> customFieldDescMap = createCustomFieldDescMap(recordType, customizationType,
-                            customFieldList);
-                    fieldDescMap.putAll(customFieldDescMap);
-                }
-
-                recordCustomFieldMap.put(recordType, fieldDescMap);
+                retrieveCustomFields(recordType);
+                fieldDescMap = recordCustomFieldMap.get(recordType.getType());
             }
         }
-
         return fieldDescMap;
     }
 
@@ -186,6 +175,23 @@ public abstract class DefaultCustomMetaDataSource<PortT> implements CustomMetaDa
                     recordTypeDesc, customizationRef);
             customRecordTypeMap.put(customRecordTypeInfo.getName(), customRecordTypeInfo);
         }
+
+        customRecordTypesLoaded = true;
+    }
+
+    protected void retrieveCustomFields(RecordTypeDesc recordType) throws NetSuiteException {
+        retrieveCustomFields();
+
+        Map<String, CustomFieldDesc> fieldDescMap = new HashMap<>();
+
+        for (BasicRecordType customizationType : fieldCustomizationTypes) {
+            List<Object> customFieldList = customFieldMap.get(customizationType);
+            Map<String, CustomFieldDesc> customFieldDescMap =
+                    createCustomFieldDescMap(recordType, customizationType, customFieldList);
+            fieldDescMap.putAll(customFieldDescMap);
+        }
+
+        recordCustomFieldMap.put(recordType.getType(), fieldDescMap);
     }
 
     protected void retrieveCustomFields() throws NetSuiteException {
@@ -204,6 +210,8 @@ public abstract class DefaultCustomMetaDataSource<PortT> implements CustomMetaDa
             List<Object> fieldCustomizationList = retrieveCustomizations(customizationRefs);
             customFieldMap.put(customizationType, fieldCustomizationList);
         }
+
+        customFieldsLoaded = true;
     }
 
     protected void retrieveCustomRecordCustomFields(CustomRecordTypeInfo recordTypeInfo) throws NetSuiteException {

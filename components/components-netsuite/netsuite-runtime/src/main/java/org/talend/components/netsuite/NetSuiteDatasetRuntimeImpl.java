@@ -26,13 +26,18 @@ import java.util.Map;
 
 import javax.xml.datatype.XMLGregorianCalendar;
 
+import org.apache.avro.JsonProperties;
 import org.apache.avro.Schema;
+import org.apache.commons.lang3.StringUtils;
 import org.talend.components.api.exception.ComponentException;
 import org.talend.components.netsuite.client.MetaDataSource;
 import org.talend.components.netsuite.client.NetSuiteException;
+import org.talend.components.netsuite.client.NsRef;
+import org.talend.components.netsuite.client.model.BasicMetaData;
 import org.talend.components.netsuite.client.model.CustomFieldDesc;
 import org.talend.components.netsuite.client.model.CustomRecordTypeInfo;
 import org.talend.components.netsuite.client.model.FieldDesc;
+import org.talend.components.netsuite.client.model.RecordTypeDesc;
 import org.talend.components.netsuite.client.model.RecordTypeInfo;
 import org.talend.components.netsuite.client.model.RefType;
 import org.talend.components.netsuite.client.model.SearchRecordTypeDesc;
@@ -46,9 +51,6 @@ import org.talend.daikon.SimpleNamedThing;
 import org.talend.daikon.avro.AvroUtils;
 import org.talend.daikon.avro.SchemaConstants;
 import org.talend.daikon.di.DiSchemaConstants;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 /**
  *
@@ -92,12 +94,10 @@ public class NetSuiteDatasetRuntimeImpl implements NetSuiteDatasetRuntime {
             Collections.sort(fieldDescList, new Comparator<FieldDesc>() {
                 @Override public int compare(FieldDesc o1, FieldDesc o2) {
                     int result = Boolean.compare(o1.isKey(), o2.isKey());
-                    if (result > 0) {
-                        return 1;
+                    if (result != 0) {
+                        return result * -1;
                     }
-                    if (result == 0) {
-                        result = o1.getName().compareTo(o2.getName());
-                    }
+                    result = o1.getName().compareTo(o2.getName());
                     return result;
                 }
             });
@@ -318,7 +318,7 @@ public class NetSuiteDatasetRuntimeImpl implements NetSuiteDatasetRuntime {
         return base;
     }
 
-    public static void enrichSchemaByCustomMetaData(final Schema schema,
+    public void enrichSchemaByCustomMetaData(final Schema schema,
             final RecordTypeInfo recordTypeInfo, final Collection<FieldDesc> fieldDescList) {
 
         if (recordTypeInfo == null) {
@@ -328,11 +328,9 @@ public class NetSuiteDatasetRuntimeImpl implements NetSuiteDatasetRuntime {
 
         if (recordTypeInfo instanceof CustomRecordTypeInfo) {
             CustomRecordTypeInfo customRecordTypeInfo = (CustomRecordTypeInfo) recordTypeInfo;
-            Schema.Field idField = getNsFieldByName(schema, "scriptId");
-            if (idField != null) {
-                JsonNode node = SchemaCustomMetaDataSource.writeCustomRecord(
-                        JsonNodeFactory.instance, customRecordTypeInfo);
-                idField.addProp(NetSuiteSchemaConstants.NS_CUSTOM_RECORD, node.toString());
+            Schema.Field keyField = getNsFieldByName(schema, "internalId");
+            if (keyField != null) {
+                writeCustomRecord(metaDataSource.getBasicMetaData(), keyField, customRecordTypeInfo);
             }
         }
 
@@ -343,13 +341,81 @@ public class NetSuiteDatasetRuntimeImpl implements NetSuiteDatasetRuntime {
                     String nsFieldName = getNsFieldName(field);
                     CustomFieldDesc customFieldDesc = customFieldDescMap.get(nsFieldName);
                     if (customFieldDesc != null) {
-                        JsonNode node = SchemaCustomMetaDataSource.writeCustomField(
-                                JsonNodeFactory.instance, customFieldDesc);
-                        field.addProp(NetSuiteSchemaConstants.NS_CUSTOM_FIELD, node.toString());
+                        writeCustomField(field, customFieldDesc);
                     }
                 }
             }
         }
+    }
+
+    public static void writeCustomRecord(BasicMetaData basicMetaData, JsonProperties properties, CustomRecordTypeInfo recordTypeInfo) {
+        NsRef ref = recordTypeInfo.getRef();
+        RecordTypeDesc recordTypeDesc = recordTypeInfo.getRecordType();
+
+        properties.addProp(NetSuiteSchemaConstants.NS_CUSTOM_RECORD, "true");
+        properties.addProp(NetSuiteSchemaConstants.NS_CUSTOM_RECORD_SCRIPT_ID, ref.getScriptId());
+        properties.addProp(NetSuiteSchemaConstants.NS_CUSTOM_RECORD_INTERNAL_ID, ref.getInternalId());
+        properties.addProp(NetSuiteSchemaConstants.NS_CUSTOM_RECORD_CUSTOMIZATION_TYPE, ref.getType());
+        properties.addProp(NetSuiteSchemaConstants.NS_CUSTOM_RECORD_TYPE, recordTypeDesc.getType());
+    }
+
+    public static CustomRecordTypeInfo readCustomRecord(BasicMetaData basicMetaData, JsonProperties properties) {
+        String scriptId = properties.getProp(NetSuiteSchemaConstants.NS_CUSTOM_RECORD_SCRIPT_ID);
+        if (StringUtils.isEmpty(scriptId)) {
+            return null;
+        }
+        String internalId = properties.getProp(NetSuiteSchemaConstants.NS_CUSTOM_RECORD_INTERNAL_ID);
+        String customizationType = properties.getProp(NetSuiteSchemaConstants.NS_CUSTOM_RECORD_CUSTOMIZATION_TYPE);
+        String recordType = properties.getProp(NetSuiteSchemaConstants.NS_CUSTOM_RECORD_TYPE);
+
+        NsRef ref = new NsRef();
+        ref.setRefType(RefType.CUSTOMIZATION_REF);
+        ref.setScriptId(scriptId);
+        ref.setInternalId(internalId);
+        ref.setType(customizationType);
+
+        RecordTypeDesc recordTypeDesc = basicMetaData.getRecordType(recordType);
+        CustomRecordTypeInfo recordTypeInfo = new CustomRecordTypeInfo(scriptId, recordTypeDesc, ref);
+
+        return recordTypeInfo;
+    }
+
+    public static void writeCustomField(JsonProperties properties, CustomFieldDesc fieldDesc) {
+        NsRef ref = fieldDesc.getRef();
+        CustomFieldRefType customFieldRefType = fieldDesc.getCustomFieldType();
+
+        properties.addProp(NetSuiteSchemaConstants.NS_CUSTOM_FIELD, "true");
+        properties.addProp(NetSuiteSchemaConstants.NS_CUSTOM_FIELD_SCRIPT_ID, ref.getScriptId());
+        properties.addProp(NetSuiteSchemaConstants.NS_CUSTOM_FIELD_INTERNAL_ID, ref.getInternalId());
+        properties.addProp(NetSuiteSchemaConstants.NS_CUSTOM_FIELD_CUSTOMIZATION_TYPE, ref.getType());
+        properties.addProp(NetSuiteSchemaConstants.NS_CUSTOM_FIELD_TYPE, customFieldRefType.name());
+    }
+
+    public static CustomFieldDesc readCustomField(JsonProperties properties) {
+        String scriptId = properties.getProp(NetSuiteSchemaConstants.NS_CUSTOM_FIELD_SCRIPT_ID);
+        if (StringUtils.isEmpty(scriptId)) {
+            return null;
+        }
+        String internalId = properties.getProp(NetSuiteSchemaConstants.NS_CUSTOM_FIELD_INTERNAL_ID);
+        String customizationType = properties.getProp(NetSuiteSchemaConstants.NS_CUSTOM_FIELD_CUSTOMIZATION_TYPE);
+        String type = properties.getProp(NetSuiteSchemaConstants.NS_CUSTOM_FIELD_TYPE);
+
+        NsRef ref = new NsRef();
+        ref.setRefType(RefType.CUSTOMIZATION_REF);
+        ref.setScriptId(scriptId);
+        ref.setInternalId(internalId);
+        ref.setType(customizationType);
+
+        CustomFieldRefType customFieldRefType = CustomFieldRefType.valueOf(type);
+
+        CustomFieldDesc fieldDesc = new CustomFieldDesc();
+        fieldDesc.setCustomFieldType(customFieldRefType);
+        fieldDesc.setRef(ref);
+        fieldDesc.setName(scriptId);
+        fieldDesc.setValueType(getCustomFieldValueClass(customFieldRefType));
+        fieldDesc.setNullable(true);
+
+        return fieldDesc;
     }
 
     public static Map<String, CustomFieldDesc> getCustomFieldDescMap(Collection<FieldDesc> fieldDescList) {

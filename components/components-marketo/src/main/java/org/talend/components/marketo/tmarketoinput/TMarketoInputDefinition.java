@@ -25,7 +25,7 @@ import org.talend.daikon.runtime.RuntimeInfo;
 
 public class TMarketoInputDefinition extends MarketoComponentDefinition {
 
-    public static final String COMPONENT_NAME = "tMarketoInputDEV";
+    public static final String COMPONENT_NAME = "tMarketoInput";
 
     private transient static final Logger LOG = LoggerFactory.getLogger(TMarketoInputDefinition.class);
 
@@ -40,24 +40,14 @@ public class TMarketoInputDefinition extends MarketoComponentDefinition {
 
     @Override
     public Set<ConnectorTopology> getSupportedConnectorTopologies() {
-        return EnumSet.of(ConnectorTopology.INCOMING_AND_OUTGOING, ConnectorTopology.OUTGOING);
-    }
-
-    @Override
-    public boolean isConditionalInputs() {
-        return true;
+        return EnumSet.of(ConnectorTopology.OUTGOING);
     }
 
     @Override
     public RuntimeInfo getRuntimeInfo(ExecutionEngine engine, ComponentProperties properties,
             ConnectorTopology connectorTopology) {
-        LOG.warn("getRuntimeInfo {} properties {} topology {}", engine, connectorTopology);
         assertEngineCompatibility(engine);
-        // assertConnectorTopologyCompatibility(connectorTopology);
-        if (connectorTopology == ConnectorTopology.OUTGOING) {
-            return getCommonRuntimeInfo(this.getClass().getClassLoader(), RUNTIME_SOURCE_CLASS);
-        } else {
-            return getCommonRuntimeInfo(this.getClass().getClassLoader(), RUNTIME_SINK_CLASS);
-        }
+        assertConnectorTopologyCompatibility(connectorTopology);
+        return getCommonRuntimeInfo(this.getClass().getClassLoader(), RUNTIME_SOURCE_CLASS);
     }
 }

@@ -40,6 +40,7 @@ public abstract class NetSuiteSourceOrSink implements SourceOrSink {
     protected transient final Logger logger = LoggerFactory.getLogger(getClass());
 
     protected NetSuiteClientFactory<?> clientFactory;
+
     protected NetSuiteProvideConnectionProperties properties;
 
     protected transient NetSuiteEndpoint endpoint;
@@ -94,8 +95,8 @@ public abstract class NetSuiteSourceOrSink implements SourceOrSink {
     }
 
     public NetSuiteConnectionProperties getConnectionProperties() {
-    return properties.getConnectionProperties();
-}
+        return properties.getConnectionProperties();
+    }
 
     public NetSuiteProvideConnectionProperties getProperties() {
         return properties;

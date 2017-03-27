@@ -21,7 +21,7 @@ import org.talend.components.netsuite.client.model.CustomRecordTypeInfo;
 import org.talend.components.netsuite.client.model.RecordTypeInfo;
 
 /**
- * Source of custom meta data.
+ * Provides meta information about customizations of NetSuite domain model.
  */
 public interface CustomMetaDataSource {
 

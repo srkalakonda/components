@@ -58,19 +58,23 @@ public class DefaultMetaDataSource implements MetaDataSource {
         this.customizationEnabled = customizationEnabled;
     }
 
-    @Override public BasicMetaData getBasicMetaData() {
+    @Override
+    public BasicMetaData getBasicMetaData() {
         return clientService.getBasicMetaData();
     }
 
-    @Override public CustomMetaDataSource getCustomMetaDataSource() {
+    @Override
+    public CustomMetaDataSource getCustomMetaDataSource() {
         return customMetaDataSource;
     }
 
-    @Override public void setCustomMetaDataSource(CustomMetaDataSource customMetaDataSource) {
+    @Override
+    public void setCustomMetaDataSource(CustomMetaDataSource customMetaDataSource) {
         this.customMetaDataSource = customMetaDataSource;
     }
 
-    @Override public Collection<RecordTypeInfo> getRecordTypes() {
+    @Override
+    public Collection<RecordTypeInfo> getRecordTypes() {
         List<RecordTypeInfo> recordTypes = new ArrayList<>();
 
         Collection<RecordTypeDesc> standardRecordTypes = clientService.getBasicMetaData().getRecordTypes();
@@ -85,7 +89,8 @@ public class DefaultMetaDataSource implements MetaDataSource {
         return recordTypes;
     }
 
-    @Override public Collection<NamedThing> getSearchableTypes() throws NetSuiteException {
+    @Override
+    public Collection<NamedThing> getSearchableTypes() {
         List<NamedThing> searchableTypes = new ArrayList<>(256);
 
         Collection<RecordTypeInfo> recordTypes = getRecordTypes();
@@ -103,11 +108,13 @@ public class DefaultMetaDataSource implements MetaDataSource {
         return searchableTypes;
     }
 
-    @Override public TypeDesc getTypeInfo(final Class<?> clazz) {
+    @Override
+    public TypeDesc getTypeInfo(final Class<?> clazz) {
         return getTypeInfo(clazz.getSimpleName());
     }
 
-    @Override public TypeDesc getTypeInfo(final String typeName) {
+    @Override
+    public TypeDesc getTypeInfo(final String typeName) {
         TypeDesc baseTypeDesc;
         String targetTypeName = null;
         Class<?> targetTypeClass;
@@ -157,7 +164,8 @@ public class DefaultMetaDataSource implements MetaDataSource {
         return new TypeDesc(targetTypeName, targetTypeClass, resultFieldDescList);
     }
 
-    @Override public RecordTypeInfo getRecordType(String typeName) {
+    @Override
+    public RecordTypeInfo getRecordType(String typeName) {
         RecordTypeDesc recordType = clientService.getBasicMetaData().getRecordType(typeName);
         if (recordType != null) {
             return new RecordTypeInfo(recordType);
@@ -168,7 +176,8 @@ public class DefaultMetaDataSource implements MetaDataSource {
         return null;
     }
 
-    @Override public SearchRecordTypeDesc getSearchRecordType(String recordTypeName) {
+    @Override
+    public SearchRecordTypeDesc getSearchRecordType(String recordTypeName) {
         SearchRecordTypeDesc searchRecordType = clientService.getBasicMetaData().getSearchRecordType(recordTypeName);
         if (searchRecordType != null) {
             return searchRecordType;
@@ -180,7 +189,8 @@ public class DefaultMetaDataSource implements MetaDataSource {
         return null;
     }
 
-    @Override public SearchRecordTypeDesc getSearchRecordType(RecordTypeDesc recordType) {
+    @Override
+    public SearchRecordTypeDesc getSearchRecordType(RecordTypeDesc recordType) {
         if (recordType.getSearchRecordType() != null) {
             return clientService.getBasicMetaData().getSearchRecordType(recordType.getSearchRecordType());
         }

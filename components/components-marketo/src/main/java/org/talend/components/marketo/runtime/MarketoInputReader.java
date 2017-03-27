@@ -34,7 +34,7 @@ import org.talend.components.marketo.runtime.client.MarketoRESTClient;
 import org.talend.components.marketo.runtime.client.type.MarketoRecordResult;
 import org.talend.components.marketo.tmarketoinput.TMarketoInputProperties;
 import org.talend.components.marketo.tmarketoinput.TMarketoInputProperties.InputOperation;
-import org.talend.daikon.di.DiSchemaConstants;
+import org.talend.daikon.avro.AvroUtils;
 import org.talend.daikon.i18n.GlobalI18N;
 import org.talend.daikon.i18n.I18nMessages;
 
@@ -70,8 +70,7 @@ public class MarketoInputReader extends AbstractBoundedReader<IndexedRecord> {
         this.source = source;
         this.properties = properties;
         // check if we've a dynamic schema...
-        isDynamic = this.properties.schemaInput.schema.getValue()
-                .getProp(DiSchemaConstants.TALEND6_DYNAMIC_COLUMN_POSITION) != null;
+        isDynamic = AvroUtils.isIncludeAllFields(this.properties.schemaInput.schema.getValue());
     }
 
     public void adaptSchemaToDynamic() throws IOException {

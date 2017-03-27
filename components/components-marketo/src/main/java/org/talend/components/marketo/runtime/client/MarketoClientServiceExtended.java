@@ -17,6 +17,7 @@ import java.util.List;
 import org.apache.avro.generic.IndexedRecord;
 import org.talend.components.marketo.runtime.client.type.MarketoRecordResult;
 import org.talend.components.marketo.runtime.client.type.MarketoSyncResult;
+import org.talend.components.marketo.tmarketobulkexec.TMarketoBulkExecProperties;
 import org.talend.components.marketo.tmarketoinput.TMarketoInputProperties;
 import org.talend.components.marketo.tmarketooutput.TMarketoOutputProperties;
 
@@ -33,4 +34,8 @@ public interface MarketoClientServiceExtended {
 
     MarketoSyncResult deleteCustomObjects(TMarketoOutputProperties parameters, List<IndexedRecord> record);
 
+    // Bulk imports
+    MarketoRecordResult bulkImportLeads(TMarketoBulkExecProperties parameters);
+
+    MarketoRecordResult bulkImportCustomObjects(TMarketoBulkExecProperties parameters);
 }

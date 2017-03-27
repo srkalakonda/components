@@ -289,4 +289,34 @@ public class MarketoConstants {
                 .endRecord();
     }
 
+    /**
+     * Bulk Operations
+     */
+    public static Schema getBulkImportLeadSchema() {
+        return SchemaBuilder.builder().record("bulkImportLead").fields() //
+                .name("batchId").prop(SchemaConstants.TALEND_COLUMN_IS_KEY, "true").type().nullable().intType().noDefault() //
+                .name("importId").type().nullable().stringType().noDefault() //
+                .name("message").type().nullable().stringType().noDefault() //
+                .name("numOfLeadsProcessed").type().nullable().intType().noDefault() //
+                .name("numOfRowsFailed").type().nullable().intType().noDefault() //
+                .name("numOfRowsWithWarning").type().nullable().intType().noDefault() //
+                .name("status").type().nullable().stringType().noDefault() //
+                .endRecord();
+    }
+
+    public static Schema getBulkImportCustomObjectSchema() {
+        return SchemaBuilder.builder().record("bulkImportCustomObject").fields() //
+                .name("batchId").prop(SchemaConstants.TALEND_COLUMN_IS_KEY, "true").type().nullable().intType().noDefault() //
+                .name("importTime").type().nullable().stringType().noDefault() //
+                .name("importId").type().nullable().stringType().noDefault() //
+                .name("message").type().nullable().stringType().noDefault() //
+                .name("numOfObjectsProcessed").type().nullable().intType().noDefault() //
+                .name("numOfRowsFailed").type().nullable().intType().noDefault() //
+                .name("numOfRowsWithWarning").type().nullable().intType().noDefault() //
+                .name("objectApiName").type().nullable().stringType().noDefault() //
+                .name("operation").type().nullable().stringType().noDefault() //
+                .name("status").type().nullable().stringType().noDefault() //
+                .endRecord();
+    }
+
 }

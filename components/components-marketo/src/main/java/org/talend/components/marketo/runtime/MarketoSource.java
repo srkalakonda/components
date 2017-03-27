@@ -17,7 +17,7 @@ import org.talend.components.marketo.tmarketoinput.TMarketoInputProperties;
 import org.talend.components.marketo.tmarketoinput.TMarketoInputProperties.CustomObjectAction;
 import org.talend.components.marketo.tmarketoinput.TMarketoInputProperties.InputOperation;
 import org.talend.components.marketo.tmarketoinput.TMarketoInputProperties.LeadSelector;
-import org.talend.daikon.di.DiSchemaConstants;
+import org.talend.daikon.avro.AvroUtils;
 import org.talend.daikon.i18n.GlobalI18N;
 import org.talend.daikon.i18n.I18nMessages;
 import org.talend.daikon.properties.ValidationResult;
@@ -68,8 +68,7 @@ public class MarketoSource extends MarketoSourceOrSink implements BoundedSource 
             TMarketoInputProperties p = (TMarketoInputProperties) properties;
             boolean useSOAP = properties.getConnectionProperties().apiMode.getValue().equals(APIMode.SOAP);
             // Validate dynamic schema if needed
-            Boolean isDynamic = p.schemaInput.schema.getValue()
-                    .getProp(DiSchemaConstants.TALEND6_DYNAMIC_COLUMN_POSITION) != null;
+            Boolean isDynamic = AvroUtils.isIncludeAllFields(p.schemaInput.schema.getValue());
             if (useSOAP) { // no dynamic schema for SOAP !
                 if (isDynamic) {
                     vr.setStatus(Result.ERROR);

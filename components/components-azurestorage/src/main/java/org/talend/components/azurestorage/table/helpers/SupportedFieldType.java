@@ -21,21 +21,23 @@ import com.microsoft.azure.storage.table.EdmType;
 
 public enum SupportedFieldType {
 
-    STRING("STRING"),
+    STRING("STRING", EdmType.STRING),
 
-    NUMERIC("NUMERIC"),
+    NUMERIC("NUMERIC", EdmType.INT32),
 
-    DATE("DATE"),
+    DATE("DATE", EdmType.DATE_TIME),
 
-    INT64("INT64"),
+    INT64("INT64", EdmType.INT64),
 
-    BINARY("BINARY"),
+    BINARY("BINARY", EdmType.BINARY),
 
-    GUID("GUID"),
+    GUID("GUID", EdmType.GUID),
 
-    BOOLEAN("BOOLEAN");
+    BOOLEAN("BOOLEAN", EdmType.BOOLEAN);
 
     private String displayName;
+
+    private EdmType supportedType;
 
     private static Map<String, SupportedFieldType> mapPossibleValues = new HashMap<>();
 
@@ -48,43 +50,23 @@ public enum SupportedFieldType {
         }
     }
 
-    private SupportedFieldType(String displayName) {
+    private SupportedFieldType(String displayName, EdmType supportedType) {
         this.displayName = displayName;
+        this.supportedType = supportedType;
     }
 
     public static List<String> possibleValues() {
         return possibleValues;
     }
 
-    public static SupportedFieldType parse(String s) {
-        if (!mapPossibleValues.containsKey(s)) {
-            throw new IllegalArgumentException(String.format("Invalid value %s, it must be %s", s, possibleValues));
-        }
-        return mapPossibleValues.get(s);
-    }
-
     /**
      * Convert String type names to Azure Type {@link EdmType}
      */
     public static EdmType getEdmType(String ft) {
-        switch (parse(ft)) {
-        case STRING:
-            return EdmType.STRING;
-        case NUMERIC:
-            return EdmType.INT32;
-        case INT64:
-            return EdmType.INT64;
-        case DATE:
-            return EdmType.DATE_TIME;
-        case BINARY:
-            return EdmType.BINARY;
-        case GUID:
-            return EdmType.GUID;
-        case BOOLEAN:
-            return EdmType.BOOLEAN;
-        default:
-            return null;
+        if (!mapPossibleValues.containsKey(ft)) {
+            throw new IllegalArgumentException(String.format("Invalid value %s, it must be %s", ft, possibleValues));
         }
+        return mapPossibleValues.get(ft).supportedType;
     }
 
     @Override

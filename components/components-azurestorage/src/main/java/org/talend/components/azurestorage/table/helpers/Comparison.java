@@ -21,19 +21,21 @@ import com.microsoft.azure.storage.table.TableQuery.QueryComparisons;
 
 public enum Comparison {
 
-    EQUAL("EQUAL"),
+    EQUAL("EQUAL", QueryComparisons.EQUAL),
 
-    NOT_EQUAL("NOT EQUAL"),
+    NOT_EQUAL("NOT EQUAL", QueryComparisons.NOT_EQUAL),
 
-    GREATER_THAN("GREATER THAN"),
+    GREATER_THAN("GREATER THAN", QueryComparisons.GREATER_THAN),
 
-    GREATER_THAN_OR_EQUAL("GREATER THAN OR EQUAL"),
+    GREATER_THAN_OR_EQUAL("GREATER THAN OR EQUAL", QueryComparisons.GREATER_THAN_OR_EQUAL),
 
-    LESS_THAN("LESS THAN"),
+    LESS_THAN("LESS THAN", QueryComparisons.LESS_THAN),
 
-    LESS_THAN_OR_EQUAL("LESS THAN OR EQUAL");
+    LESS_THAN_OR_EQUAL("LESS THAN OR EQUAL", QueryComparisons.LESS_THAN_OR_EQUAL);
 
     private String displayName;
+
+    private String queryComparison;
 
     private static Map<String, Comparison> mapPossibleValues = new HashMap<>();
 
@@ -46,41 +48,23 @@ public enum Comparison {
         }
     }
 
-    private Comparison(String displayName) {
+    private Comparison(String displayName, String queryComparison) {
         this.displayName = displayName;
+        this.queryComparison = queryComparison;
     }
 
     public static List<String> possibleValues() {
         return possibleValues;
     }
 
-    private static Comparison parse(String s) {
-        if (!mapPossibleValues.containsKey(s)) {
-            throw new IllegalArgumentException(String.format("Invalid value %s, it must be %s", s, mapPossibleValues));
-        }
-        return mapPossibleValues.get(s);
-    }
-
     /**
      * Convert a function form String value to Azure Type {@link QueryComparisons}
      */
-    public static String getQueryComparisons(String s) {
-        switch (parse(s)) {
-        case EQUAL:
-            return QueryComparisons.EQUAL;
-        case NOT_EQUAL:
-            return QueryComparisons.NOT_EQUAL;
-        case GREATER_THAN:
-            return QueryComparisons.GREATER_THAN;
-        case GREATER_THAN_OR_EQUAL:
-            return QueryComparisons.GREATER_THAN_OR_EQUAL;
-        case LESS_THAN:
-            return QueryComparisons.LESS_THAN;
-        case LESS_THAN_OR_EQUAL:
-            return QueryComparisons.LESS_THAN_OR_EQUAL;
-        default:
-            return null;
+    public static String getQueryComparisons(String c) {
+        if (!mapPossibleValues.containsKey(c)) {
+            throw new IllegalArgumentException(String.format("Invalid value %s, it must be %s", c, mapPossibleValues));
         }
+        return mapPossibleValues.get(c).queryComparison;
     }
 
     @Override

@@ -20,11 +20,13 @@ import java.util.Map;
 import com.microsoft.azure.storage.table.TableQuery.Operators;
 
 public enum Predicate {
-    AND("AND"),
-    OR("OR"),
-    NOT("NOT");
+    AND("AND", Operators.AND),
+    OR("OR", Operators.OR),
+    NOT("NOT", Operators.NOT);
 
     private String displayName;
+
+    private String operator;
 
     private static Map<String, Predicate> mapPossibleValues = new HashMap<>();
 
@@ -37,19 +39,13 @@ public enum Predicate {
         }
     }
 
-    private Predicate(String displayName) {
+    private Predicate(String displayName, String operator) {
         this.displayName = displayName;
+        this.operator = operator;
     }
 
     public static List<String> possibleValues() {
         return possibleValues;
-    }
-
-    private static Predicate parse(String s) {
-        if (!mapPossibleValues.containsKey(s)) {
-            throw new IllegalArgumentException(String.format("Invalid value %s, it must be %s", s, possibleValues));
-        }
-        return mapPossibleValues.get(s);
     }
 
     /**
@@ -57,16 +53,10 @@ public enum Predicate {
      */
     public static String getOperator(String p) {
 
-        switch (parse(p)) {
-        case AND:
-            return Operators.AND;
-        case OR:
-            return Operators.OR;
-        case NOT:
-            return Operators.NOT;
-        default:
-            return null;
+        if (!mapPossibleValues.containsKey(p)) {
+            throw new IllegalArgumentException(String.format("Invalid value %s, it must be %s", p, possibleValues));
         }
+        return mapPossibleValues.get(p).operator;
     }
 
     @Override

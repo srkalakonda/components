@@ -293,7 +293,7 @@ public class MarketoConstants {
      * Bulk Operations
      */
     public static Schema getBulkImportLeadSchema() {
-        return SchemaBuilder.builder().record("bulkImportLead").fields() //
+        Schema s = SchemaBuilder.builder().record("bulkImportLead").fields() //
                 .name("batchId").prop(SchemaConstants.TALEND_COLUMN_IS_KEY, "true").type().nullable().intType().noDefault() //
                 .name("importId").type().nullable().stringType().noDefault() //
                 .name("message").type().nullable().stringType().noDefault() //
@@ -301,11 +301,15 @@ public class MarketoConstants {
                 .name("numOfRowsFailed").type().nullable().intType().noDefault() //
                 .name("numOfRowsWithWarning").type().nullable().intType().noDefault() //
                 .name("status").type().nullable().stringType().noDefault() //
+                .name("failuresLogFile").type().nullable().stringType().noDefault() //
+                .name("warningsLogFile").type().nullable().stringType().noDefault() //
                 .endRecord();
+        s.addProp(SchemaConstants.TALEND_IS_LOCKED, "true");
+        return s;
     }
 
     public static Schema getBulkImportCustomObjectSchema() {
-        return SchemaBuilder.builder().record("bulkImportCustomObject").fields() //
+        Schema s = SchemaBuilder.builder().record("bulkImportCustomObject").fields() //
                 .name("batchId").prop(SchemaConstants.TALEND_COLUMN_IS_KEY, "true").type().nullable().intType().noDefault() //
                 .name("importTime").type().nullable().stringType().noDefault() //
                 .name("importId").type().nullable().stringType().noDefault() //
@@ -316,7 +320,11 @@ public class MarketoConstants {
                 .name("objectApiName").type().nullable().stringType().noDefault() //
                 .name("operation").type().nullable().stringType().noDefault() //
                 .name("status").type().nullable().stringType().noDefault() //
+                .name("failuresLogFile").type().nullable().stringType().noDefault() //
+                .name("warningsLogFile").type().nullable().stringType().noDefault() //
                 .endRecord();
+        s.addProp(SchemaConstants.TALEND_IS_LOCKED, "true");
+        return s;
     }
 
 }

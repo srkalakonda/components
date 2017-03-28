@@ -17,6 +17,7 @@ import static java.util.Arrays.asList;
 import static org.talend.components.marketo.tmarketoinput.TMarketoInputProperties.LeadSelector.LeadKeySelector;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
@@ -51,6 +52,8 @@ import org.apache.avro.Schema.Type;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.GenericData.Record;
 import org.apache.avro.generic.IndexedRecord;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.talend.components.marketo.MarketoConstants;
@@ -74,12 +77,15 @@ import org.talend.components.marketo.runtime.client.type.MarketoException;
 import org.talend.components.marketo.runtime.client.type.MarketoRecordResult;
 import org.talend.components.marketo.runtime.client.type.MarketoSyncResult;
 import org.talend.components.marketo.tmarketobulkexec.TMarketoBulkExecProperties;
+import org.talend.components.marketo.tmarketobulkexec.TMarketoBulkExecProperties.BulkImportTo;
 import org.talend.components.marketo.tmarketoconnection.TMarketoConnectionProperties;
 import org.talend.components.marketo.tmarketoinput.TMarketoInputProperties;
 import org.talend.components.marketo.tmarketoinput.TMarketoInputProperties.IncludeExcludeFieldsREST;
 import org.talend.components.marketo.tmarketoinput.TMarketoInputProperties.ListParam;
 import org.talend.components.marketo.tmarketooutput.TMarketoOutputProperties;
 import org.talend.daikon.avro.SchemaConstants;
+import org.talend.daikon.i18n.GlobalI18N;
+import org.talend.daikon.i18n.I18nMessages;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -178,11 +184,21 @@ public class MarketoRESTClient extends MarketoClient implements MarketoClientSer
 
     private static final String FIELD_FORMAT = "format";
 
-    public static final String API_PATH_BULK_CUSTOMOBJECTS = "/v1/customobjects/%s/";
+    public static final String API_PATH_BULK_LEADS = "/v1/leads/import.json";
+
+    public static final String API_PATH_BULK_LEADS_RESULT = "/v1/leads/import/%d/%s.json";
+
+    public static final String API_PATH_BULK_CUSTOMOBJECTS = "/v1/customobjects/%s/import.json";
 
     public static final String API_PATH_BULK_CUSTOMOBJECTS_RESULT = "/v1/customobjects/%s/import/%d/%s.json";
 
     private static final String API_PATH_URI_IMPORT = "import.json";
+
+    public static final String BULK_STATUS_COMPLETE = "Complete";
+
+    public static final String BULK_STATUS_FAILED = "Failed";
+
+    public static final String FIELD_PARTITION_NAME = "partitionName";
 
     private Map<Integer, String> supportedActivities;
 
@@ -195,6 +211,8 @@ public class MarketoRESTClient extends MarketoClient implements MarketoClientSer
     private String bulkPath = "/bulk";
 
     private transient static final Logger LOG = LoggerFactory.getLogger(MarketoRESTClient.class);
+
+    private static final I18nMessages messages = GlobalI18N.getI18nMessageProvider().getI18nMessages(MarketoRESTClient.class);
 
     public MarketoRESTClient(TMarketoConnectionProperties connection) throws MarketoException {
         endpoint = connection.endpoint.getValue();
@@ -1657,38 +1675,65 @@ public class MarketoRESTClient extends MarketoClient implements MarketoClientSer
         return fileOutPut;
     }
 
-    /**
-     * Imports a spreadsheet of leads into the target instance
-     *
-     * @param parameters
-     * @return
-     */
-    @Override
-    public MarketoRecordResult bulkImportLeads(TMarketoBulkExecProperties parameters) {
-        return null;
-    }
-
-    public void executeDownloadFileRequest(String urlFile, String path) throws MarketoException {
+    public void executeDownloadFileRequest(File filename) throws MarketoException {
+        String err;
         try {
-            String data;
-            URL url = new URL(urlFile);
+            URL url = new URL(current_uri.toString());
             HttpsURLConnection urlConn = (HttpsURLConnection) url.openConnection();
             urlConn.setRequestMethod("GET");
             urlConn.setRequestProperty("accept", "text/json");
             int responseCode = urlConn.getResponseCode();
             if (responseCode == 200) {
                 InputStream inStream = urlConn.getInputStream();
-                data = convertStreamToString(inStream);
+                FileUtils.copyInputStreamToFile(inStream, filename);
             } else {
-                data = "Status:" + responseCode;
+                err = String.format("Download failed for %s. Status: %d", filename, responseCode);
+                throw new MarketoException(REST, err);
             }
         } catch (IOException e) {
-
+            err = String.format("Download failed for %s. Cause: %s", filename, e.getMessage());
+            LOG.error(err);
+            throw new MarketoException(REST, err);
         }
     }
 
+    public BulkImport getStatusesForBatch(BulkImport bulk, String downloadPath) throws MarketoException {
+        String logFile;
+        if (bulk.getNumOfRowsFailed() > 0) {
+            current_uri = new StringBuilder(bulkPath);
+            if (bulk.isBulkLeadsImport()) {
+                current_uri.append(String.format(API_PATH_BULK_LEADS_RESULT, bulk.getBatchId(), "failures"));
+            } else {
+                current_uri.append(String.format(API_PATH_BULK_CUSTOMOBJECTS_RESULT, bulk.getObjectApiName(), bulk.getBatchId(),
+                        "failures"));
+            }
+            current_uri.append(fmtParams(FIELD_ACCESS_TOKEN, accessToken, true));
+            LOG.debug("failures = {}.", current_uri);
+            logFile = downloadPath + bulk.getFailuresOrWarningsFilename(false);
+            bulk.setFailuresLogFile(logFile);
+            executeDownloadFileRequest(new File(logFile));
+        }
+        if (bulk.getNumOfRowsWithWarning() > 0) {
+            current_uri = new StringBuilder(bulkPath);
+            if (bulk.isBulkLeadsImport()) {
+                current_uri.append(String.format(API_PATH_BULK_LEADS_RESULT, bulk.getBatchId(), "warnings"));
+            } else {
+                current_uri.append(String.format(API_PATH_BULK_CUSTOMOBJECTS_RESULT, bulk.getObjectApiName(), bulk.getBatchId(),
+                        "warnings"));
+            }
+            current_uri.append(fmtParams(FIELD_ACCESS_TOKEN, accessToken, true));
+            LOG.debug("warnings = {}.", current_uri);
+            logFile = downloadPath + bulk.getFailuresOrWarningsFilename(true);
+            bulk.setWarningsLogFile(logFile);
+            executeDownloadFileRequest(new File(logFile));
+        }
+        return bulk;
+    }
+
     /**
-     * Imports a spreadsheet of custom objects into the target instance
+     * Imports a spreadsheet of leads or custom objects into the target instance
+     *
+     * POST /bulk/v1/leads/import.json
      *
      * POST /bulk/v1/customobjects/{apiName}/import.json
      *
@@ -1696,101 +1741,91 @@ public class MarketoRESTClient extends MarketoClient implements MarketoClientSer
      * @return
      */
     @Override
-    public MarketoRecordResult bulkImportCustomObjects(TMarketoBulkExecProperties parameters) {
-        String customObjectName = parameters.customObjectName.getValue();
-        String file = parameters.bulkFilePath.getValue();
+    public MarketoRecordResult bulkImport(TMarketoBulkExecProperties parameters) {
+        String importFilename = parameters.bulkFilePath.getValue();
         String format = parameters.bulkFileFormat.getValue().name();
         Integer pollWaitTime = parameters.pollWaitTime.getValue();
-        current_uri = new StringBuilder(bulkPath)//
-                .append(String.format(API_PATH_BULK_CUSTOMOBJECTS, customObjectName))//
-                .append(API_PATH_URI_IMPORT).append(fmtParams(FIELD_ACCESS_TOKEN, accessToken, true))//
-                .append(fmtParams(FIELD_FORMAT, format));
+        String logDownloadPath = parameters.logDownloadPath.getValue();
+        String lookupField;
+        String listId;
+        String partitionName;
+        String customObjectName;
+        current_uri = new StringBuilder(bulkPath);
+        Boolean isImportingLeads = parameters.bulkImportTo.getValue().equals(BulkImportTo.Leads);
+        if (isImportingLeads) {
+            lookupField = parameters.lookupField.getValue().name();
+            listId = parameters.listId.getValue();
+            partitionName = parameters.partitionName.getValue();
+            current_uri.append(API_PATH_BULK_LEADS)//
+                    .append(fmtParams(FIELD_ACCESS_TOKEN, accessToken, true))//
+                    .append(fmtParams(FIELD_LOOKUP_FIELD, lookupField));
+            if (!StringUtils.isEmpty(listId)) {
+                current_uri.append(fmtParams(FIELD_LIST_ID, listId));
+            }
+            if (!StringUtils.isEmpty(partitionName)) {
+                current_uri.append(fmtParams(FIELD_PARTITION_NAME, partitionName));
+            }
+        } else {
+            customObjectName = parameters.customObjectName.getValue();
+            current_uri.append(String.format(API_PATH_BULK_CUSTOMOBJECTS, customObjectName))//
+                    .append(fmtParams(FIELD_ACCESS_TOKEN, accessToken, true));
+        }
+        current_uri.append(fmtParams(FIELD_FORMAT, format));
+        //
         MarketoRecordResult mkto = new MarketoRecordResult();
         try {
-            LOG.debug("bulkImportCustomObjects {}.", current_uri);
-            BulkImportResult rs = executePostFileRequest(BulkImportResult.class, file);
+            LOG.debug("bulkImport {}.", current_uri);
+            BulkImportResult rs = executePostFileRequest(BulkImportResult.class, importFilename);
             LOG.debug("rs = {}.", rs);
-            // batchId=29968,
-            // objectApiName='car_c',
-            // status='Queued'
             mkto.setRequestId(REST + "::" + rs.getRequestId());
-            mkto.setStreamPosition(rs.getNextPageToken());
             mkto.setSuccess(rs.isSuccess());
-            if (mkto.isSuccess()) {
-                BulkImport bulkResult = rs.getResult().get(0);
-                if (bulkResult.getStatus().equals("Failed")) { // request Failed
-                    mkto.setSuccess(false);
-                    mkto.setErrors(Arrays.asList(new MarketoError(REST, "", "Failed : " + bulkResult.getMessage())));
-                    return mkto;
-                } else if (bulkResult.getStatus().equals("Complete")) { // already Complete
-                    if (bulkResult.getNumOfRowsFailed() > 0) {
-                        StringBuilder sb = new StringBuilder(bulkPath)//
-                                .append(String.format(API_PATH_BULK_CUSTOMOBJECTS, bulkResult.getObjectApiName(),
-                                        bulkResult.getBatchId(), "failures"));
-                        executeDownloadFileRequest(sb.toString(), "");
-
-                    }
-                    if (bulkResult.getNumOfRowsWithWarning() > 0) {
-                        StringBuilder sb = new StringBuilder(bulkPath)//
-                                .append(String.format(API_PATH_BULK_CUSTOMOBJECTS, bulkResult.getObjectApiName(),
-                                        bulkResult.getBatchId(), "warnings"));
-                        executeDownloadFileRequest(sb.toString(), "");
-                    }
-
-                } else { // Importing, Queued
-                    while (true) {
-                        try {
-                            Thread.sleep(pollWaitTime * 1000);
-
-                        } catch (InterruptedException e) {
-                            LOG.error("Sleep interrupted : {}", e);
-                            throw new MarketoException(REST, "Sleep interrupted : " + e.getLocalizedMessage());
-                        }
-                    }
-
-                }
-                mkto.setRecordCount(1);
-                mkto.setRemainCount(0);
-                mkto.setRecords(rs.getRecords());
-            } else {
+            if (!mkto.isSuccess()) {
                 mkto.setRecordCount(0);
-                mkto.setErrors(Arrays.asList(new MarketoError(REST, "Could not bulk import CustomObjects.")));
+                mkto.setErrors(Arrays
+                        .asList(new MarketoError(REST, messages.getMessage("bulkimport.error.import", rs.getErrors().get(0)))));
+                return mkto;
             }
+            BulkImport bulkResult = rs.getResult().get(0);
+            if (bulkResult.getStatus().equals(BULK_STATUS_FAILED)) { // request Failed
+                LOG.error("[bulkImportCustomObjects] Failed: {}.", bulkResult.getMessage());
+                mkto.setSuccess(false);
+                mkto.setErrors(Arrays.asList(new MarketoError(REST, "", "Failed : " + bulkResult.getMessage())));
+            } else if (bulkResult.getStatus().equals(BULK_STATUS_COMPLETE)) { // already Complete
+                bulkResult = getStatusesForBatch(bulkResult, logDownloadPath);
+            } else { // Importing, Queued
+                while (true) {
+                    try {
+                        LOG.warn(messages.getMessage("bulkimport.status.waiting", pollWaitTime));
+                        Thread.sleep(pollWaitTime * 1000);
+                        current_uri = new StringBuilder(bulkPath);
+                        if (bulkResult.isBulkLeadsImport()) {
+                            current_uri.append(String.format(API_PATH_BULK_LEADS_RESULT, bulkResult.getBatchId(), "status"));
+                        } else {
+                            current_uri.append(String.format(API_PATH_BULK_CUSTOMOBJECTS_RESULT, bulkResult.getObjectApiName(),
+                                    bulkResult.getBatchId(), "status"));
+                        }
+                        current_uri.append(fmtParams(FIELD_ACCESS_TOKEN, accessToken, true));
+                        LOG.debug("status = {}.", current_uri);
+                        rs = (BulkImportResult) executeGetRequest(BulkImportResult.class);
+                        if (rs.isSuccess() && rs.getResult().get(0).getStatus().equals(BULK_STATUS_COMPLETE)) {
+                            bulkResult = getStatusesForBatch(rs.getResult().get(0), logDownloadPath);
+                            break;
+                        } else {
+                            LOG.warn(messages.getMessage("bulkimport.status.current", rs.getResult().get(0).getStatus()));
+                        }
+                    } catch (InterruptedException e) {
+                        LOG.error("Sleep interrupted : {}", e);
+                        throw new MarketoException(REST, "Sleep interrupted : " + e.getLocalizedMessage());
+                    }
+                }
+            }
+            mkto.setRecords(Arrays.asList(bulkResult.toIndexedRecord()));
+            mkto.setRecordCount(1);
+            mkto.setRemainCount(0);
         } catch (MarketoException e) {
             mkto.setSuccess(false);
             mkto.setErrors(Arrays.asList(e.toMarketoError()));
         }
         return mkto;
-
-        /*
-         * 
-         * BulkImportResult{requestId='16bcd#15b10aab807', success=true, errors=null, result=[BulkImport{batchId=29967,
-         * importTime='null', importId='null', message='null', numOfRowsProcessed=null, numOfLeadsProcessed=null,
-         * numOfObjectsProcessed=null, numOfRowsFailed=null, numOfRowsWithWarning=null, objectApiName='car_c',
-         * operation='null', status='Queued'}], moreResult=false, nextPageToken=null}.
-         * 
-         * 
-         * 
-         * https://764-cve-068.mktorest.com/bulk/v1/customobjects/car_c/import/29967/status.json?access_token=a7a262cb-
-         * 4263-4fc6-866c-6f5b9dc9d720:ab
-         *
-         *
-         * {"requestId":"447a#15b10ac04ed","result":[{"batchId":29967,"operation":"import","status":"Complete",
-         * "objectApiName":"car_c","numOfObjectsProcessed":0,"numOfRowsFailed":2,"numOfRowsWithWarning":0,
-         * "importTime":"18 second(s)"
-         * ,"message":"Import completed with errors, 0 records imported (0 members), 2 failed"}],"success":true}
-         *
-         *
-         * https://764-cve-068.mktorest.com/bulk/v1/customobjects/car_c/import/29967/status.json?access_token=a7a262cb-
-         * 4263-4fc6-866c-6f5b9dc9d720:ab
-         *
-         *
-         *
-         * VIN,brand,model,year,customerId,Import Failure Reason 12345600,Toyota,Truc,2014,33897465,Unresolved reference
-         * to custom object: Person 12345601,Toyota,Truc,2014,33897466,Unresolved reference to custom object: Person
-         *
-         * 
-         */
-
     }
 }

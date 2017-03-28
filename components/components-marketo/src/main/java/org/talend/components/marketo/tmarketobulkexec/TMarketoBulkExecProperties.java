@@ -55,6 +55,8 @@ public class TMarketoBulkExecProperties extends MarketoComponentProperties {
 
     public Property<Integer> pollWaitTime = newInteger("pollWaitTime").setRequired();
 
+    public Property<String> logDownloadPath = newString("logDownloadPath").setRequired();
+
     public TMarketoBulkExecProperties(String name) {
         super(name);
     }
@@ -63,8 +65,7 @@ public class TMarketoBulkExecProperties extends MarketoComponentProperties {
     protected Set<PropertyPathConnector> getAllSchemaPropertiesConnectors(boolean isOutputConnection) {
         Set<PropertyPathConnector> connectors = new HashSet<>();
         if (isOutputConnection) {
-            connectors.add(FLOW_CONNECTOR);
-            connectors.add(REJECT_CONNECTOR);
+            connectors.add(MAIN_CONNECTOR);
         }
         return connectors;
     }
@@ -73,7 +74,7 @@ public class TMarketoBulkExecProperties extends MarketoComponentProperties {
     public void setupProperties() {
         super.setupProperties();
 
-        schemaFlow.schema.setValue(MarketoConstants.getBulkImportLeadSchema());
+        schemaInput.schema.setValue(MarketoConstants.getBulkImportLeadSchema());
 
         bulkImportTo.setPossibleValues(BulkImportTo.values());
         bulkImportTo.setValue(BulkImportTo.Leads);
@@ -87,6 +88,7 @@ public class TMarketoBulkExecProperties extends MarketoComponentProperties {
         bulkFileFormat.setValue(BulkFileFormat.csv);
 
         pollWaitTime.setValue(15);
+        logDownloadPath.setValue("");
     }
 
     @Override
@@ -101,6 +103,7 @@ public class TMarketoBulkExecProperties extends MarketoComponentProperties {
         mainForm.addRow(customObjectName);
         mainForm.addRow(bulkFilePath);
         mainForm.addRow(pollWaitTime);
+        mainForm.addRow(logDownloadPath);
         mainForm.addRow(dieOnError);
     }
 
@@ -122,9 +125,9 @@ public class TMarketoBulkExecProperties extends MarketoComponentProperties {
     public void afterBulkImportTo() {
         // update outgoing schema
         if (bulkImportTo.getValue().equals(BulkImportTo.Leads))
-            schemaFlow.schema.setValue(MarketoConstants.getBulkImportLeadSchema());
+            schemaInput.schema.setValue(MarketoConstants.getBulkImportLeadSchema());
         else
-            schemaFlow.schema.setValue(MarketoConstants.getBulkImportCustomObjectSchema());
+            schemaInput.schema.setValue(MarketoConstants.getBulkImportCustomObjectSchema());
         //
         refreshLayout(getForm(Form.MAIN));
     }

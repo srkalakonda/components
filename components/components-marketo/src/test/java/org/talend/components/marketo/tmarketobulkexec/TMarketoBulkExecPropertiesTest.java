@@ -47,7 +47,6 @@ public class TMarketoBulkExecPropertiesTest {
         assertEquals(Collections.emptySet(), props.getAllSchemaPropertiesConnectors(false));
         Set<PropertyPathConnector> connectors = new HashSet<>();
         connectors.add(props.FLOW_CONNECTOR);
-        connectors.add(props.REJECT_CONNECTOR);
         assertEquals(connectors, props.getAllSchemaPropertiesConnectors(true));
     }
 
@@ -99,10 +98,10 @@ public class TMarketoBulkExecPropertiesTest {
     @Test
     public void testSchema() throws Exception {
         props.afterBulkImportTo();
-        assertEquals(MarketoConstants.getBulkImportLeadSchema(), props.schemaFlow.schema.getValue());
+        assertEquals(MarketoConstants.getBulkImportLeadSchema(), props.schemaInput.schema.getValue());
         props.bulkImportTo.setValue(BulkImportTo.CustomObjects);
         props.afterBulkImportTo();
-        assertEquals(MarketoConstants.getBulkImportCustomObjectSchema(), props.schemaFlow.schema.getValue());
+        assertEquals(MarketoConstants.getBulkImportCustomObjectSchema(), props.schemaInput.schema.getValue());
     }
 
     @Test

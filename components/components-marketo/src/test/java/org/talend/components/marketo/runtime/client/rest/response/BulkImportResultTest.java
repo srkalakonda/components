@@ -37,12 +37,17 @@ public class BulkImportResultTest {
     }
 
     @Test
+    public void testGetRecords() throws Exception {
+        assertEquals(1, r.getRecords().size());
+    }
+
+    @Test
     public void testToString() throws Exception {
         String s = "BulkImportResult{requestId='null', success=false, errors=null, result=[BulkImport{batchId=null, "
                 + "importTime='null', importId='null', message='null', numOfRowsProcessed=null, "
                 + "numOfLeadsProcessed=null, numOfObjectsProcessed=null, numOfRowsFailed=null, "
-                + "numOfRowsWithWarning=null, objectApiName='null', operation='null', status='null'}], "
-                + "moreResult=false, nextPageToken=null}";
+                + "numOfRowsWithWarning=null, objectApiName='null', operation='null', status='null', "
+                + "failuresLogFile='', warningsLogFile=''}], moreResult=false, nextPageToken=null}";
         assertEquals(s, r.toString());
     }
 

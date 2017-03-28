@@ -14,6 +14,7 @@ package org.talend.components.marketo.runtime.client.rest.type;
 
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.IndexedRecord;
+import org.apache.commons.lang3.StringUtils;
 import org.talend.components.marketo.MarketoConstants;
 
 public class BulkImport {
@@ -73,6 +74,21 @@ public class BulkImport {
      * Status of the batch
      */
     String status;
+
+    /**
+     * Failures log filename
+     */
+    String failuresLogFile = "";
+
+    /**
+     * Warnings log filename
+     */
+    String warningsLogFile = "";
+
+    // formats
+    private String fileFormatCustomObject = "bulk_customobjects_%s_%d_%s.csv";
+
+    private String fileFormatLead = "bulk_leads_%d_%s.csv";
 
     public Integer getBatchId() {
         return batchId;
@@ -166,6 +182,38 @@ public class BulkImport {
         return numOfLeadsProcessed != null ? numOfLeadsProcessed : numOfObjectsProcessed;
     }
 
+    public String getFailuresLogFile() {
+        return failuresLogFile;
+    }
+
+    public void setFailuresLogFile(String failuresLogFile) {
+        this.failuresLogFile = failuresLogFile;
+    }
+
+    public String getWarningsLogFile() {
+        return warningsLogFile;
+    }
+
+    public void setWarningsLogFile(String warningsLogFile) {
+        this.warningsLogFile = warningsLogFile;
+    }
+
+    public String getFailuresOrWarningsFilename(Boolean isWarning) {
+        String level = "failures";
+        if (isWarning) {
+            level = "warnings";
+        }
+        if (!StringUtils.isEmpty(objectApiName)) {
+            return String.format(fileFormatCustomObject, getObjectApiName(), getBatchId(), level);
+        } else {
+            return String.format(fileFormatLead, getBatchId(), level);
+        }
+    }
+
+    public boolean isBulkLeadsImport() {
+        return StringUtils.isEmpty(objectApiName);
+    }
+
     @Override
     public String toString() {
         final StringBuffer sb = new StringBuffer("BulkImport{");
@@ -181,23 +229,41 @@ public class BulkImport {
         sb.append(", objectApiName='").append(objectApiName).append('\'');
         sb.append(", operation='").append(operation).append('\'');
         sb.append(", status='").append(status).append('\'');
+        sb.append(", failuresLogFile='").append(failuresLogFile).append('\'');
+        sb.append(", warningsLogFile='").append(warningsLogFile).append('\'');
         sb.append('}');
         return sb.toString();
     }
 
     public IndexedRecord toIndexedRecord() {
-        IndexedRecord record = new GenericData.Record(MarketoConstants.getBulkImportCustomObjectSchema());
-        record.put(0, getBatchId());
-        record.put(1, getImportTime());
-        record.put(2, getImportId());
-        record.put(3, getMessage());
-        record.put(4, getNumOfObjectsProcessed());
-        record.put(5, getNumOfRowsFailed());
-        record.put(6, getNumOfRowsWithWarning());
-        record.put(7, getObjectApiName());
-        record.put(8, getOperation());
-        record.put(9, getStatus());
+        IndexedRecord record;
+        if (isBulkLeadsImport()) {
+            record = new GenericData.Record(MarketoConstants.getBulkImportLeadSchema());
+            record.put(0, getBatchId());
+            record.put(1, getImportId());
+            record.put(2, getMessage());
+            record.put(3, getNumOfLeadsProcessed());
+            record.put(4, getNumOfRowsFailed());
+            record.put(5, getNumOfRowsWithWarning());
+            record.put(6, getStatus());
+            record.put(7, getFailuresLogFile());
+            record.put(8, getWarningsLogFile());
 
+        } else {
+            record = new GenericData.Record(MarketoConstants.getBulkImportCustomObjectSchema());
+            record.put(0, getBatchId());
+            record.put(1, getImportTime());
+            record.put(2, getImportId());
+            record.put(3, getMessage());
+            record.put(4, getNumOfObjectsProcessed());
+            record.put(5, getNumOfRowsFailed());
+            record.put(6, getNumOfRowsWithWarning());
+            record.put(7, getObjectApiName());
+            record.put(8, getOperation());
+            record.put(9, getStatus());
+            record.put(10, getFailuresLogFile());
+            record.put(11, getWarningsLogFile());
+        }
         return record;
     }
 }

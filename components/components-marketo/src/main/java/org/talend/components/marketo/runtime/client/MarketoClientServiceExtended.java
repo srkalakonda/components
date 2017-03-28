@@ -35,7 +35,6 @@ public interface MarketoClientServiceExtended {
     MarketoSyncResult deleteCustomObjects(TMarketoOutputProperties parameters, List<IndexedRecord> record);
 
     // Bulk imports
-    MarketoRecordResult bulkImportLeads(TMarketoBulkExecProperties parameters);
+    MarketoRecordResult bulkImport(TMarketoBulkExecProperties parameters);
 
-    MarketoRecordResult bulkImportCustomObjects(TMarketoBulkExecProperties parameters);
 }

@@ -13,7 +13,11 @@
 package org.talend.components.azurestorage.table.helpers;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import com.microsoft.azure.storage.table.EdmType;
 
 public enum SupportedFieldType {
 
@@ -33,34 +37,54 @@ public enum SupportedFieldType {
 
     private String displayName;
 
+    private static Map<String, SupportedFieldType> mapPossibleValues = new HashMap<>();
+
     private static List<String> possibleValues = new ArrayList<>();
+
+    static {
+        for (SupportedFieldType supportedFieldType : values()) {
+            possibleValues.add(supportedFieldType.displayName);
+            mapPossibleValues.put(supportedFieldType.displayName, supportedFieldType);
+        }
+    }
 
     private SupportedFieldType(String displayName) {
         this.displayName = displayName;
     }
 
     public static List<String> possibleValues() {
-        if (possibleValues.isEmpty()) {
-            for (SupportedFieldType predicat : values()) {
-                possibleValues.add(predicat.displayName);
-            }
-        }
         return possibleValues;
     }
 
     public static SupportedFieldType parse(String s) {
-
-        if (!possibleValues().contains(s)) {
+        if (!mapPossibleValues.containsKey(s)) {
             throw new IllegalArgumentException(String.format("Invalid value %s, it must be %s", s, possibleValues));
         }
+        return mapPossibleValues.get(s);
+    }
 
-        for (SupportedFieldType predicat : values()) {
-            if (predicat.displayName.equals(s)) {
-                return predicat;
-            }
+    /**
+     * Convert String type names to Azure Type {@link EdmType}
+     */
+    public static EdmType getEdmType(String ft) {
+        switch (parse(ft)) {
+        case STRING:
+            return EdmType.STRING;
+        case NUMERIC:
+            return EdmType.INT32;
+        case INT64:
+            return EdmType.INT64;
+        case DATE:
+            return EdmType.DATE_TIME;
+        case BINARY:
+            return EdmType.BINARY;
+        case GUID:
+            return EdmType.GUID;
+        case BOOLEAN:
+            return EdmType.BOOLEAN;
+        default:
+            return null;
         }
-
-        return null; // can't happen
     }
 
     @Override

@@ -13,7 +13,11 @@
 package org.talend.components.azurestorage.table.helpers;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import com.microsoft.azure.storage.table.TableQuery.QueryComparisons;
 
 public enum Comparison {
 
@@ -31,34 +35,52 @@ public enum Comparison {
 
     private String displayName;
 
+    private static Map<String, Comparison> mapPossibleValues = new HashMap<>();
+
     private static List<String> possibleValues = new ArrayList<>();
+
+    static {
+        for (Comparison comparison : values()) {
+            mapPossibleValues.put(comparison.displayName, comparison);
+            possibleValues.add(comparison.displayName);
+        }
+    }
 
     private Comparison(String displayName) {
         this.displayName = displayName;
     }
 
     public static List<String> possibleValues() {
-        if (possibleValues.isEmpty()) {
-            for (Comparison predicat : values()) {
-                possibleValues.add(predicat.displayName);
-            }
-        }
         return possibleValues;
     }
 
-    public static Comparison parse(String s) {
-
-        if (!possibleValues().contains(s)) {
-            throw new IllegalArgumentException(String.format("Invalid value %s, it must be %s", s, possibleValues));
+    private static Comparison parse(String s) {
+        if (!mapPossibleValues.containsKey(s)) {
+            throw new IllegalArgumentException(String.format("Invalid value %s, it must be %s", s, mapPossibleValues));
         }
+        return mapPossibleValues.get(s);
+    }
 
-        for (Comparison predicat : values()) {
-            if (predicat.displayName.equals(s)) {
-                return predicat;
-            }
+    /**
+     * Convert a function form String value to Azure Type {@link QueryComparisons}
+     */
+    public static String getQueryComparisons(String s) {
+        switch (parse(s)) {
+        case EQUAL:
+            return QueryComparisons.EQUAL;
+        case NOT_EQUAL:
+            return QueryComparisons.NOT_EQUAL;
+        case GREATER_THAN:
+            return QueryComparisons.GREATER_THAN;
+        case GREATER_THAN_OR_EQUAL:
+            return QueryComparisons.GREATER_THAN_OR_EQUAL;
+        case LESS_THAN:
+            return QueryComparisons.LESS_THAN;
+        case LESS_THAN_OR_EQUAL:
+            return QueryComparisons.LESS_THAN_OR_EQUAL;
+        default:
+            return null;
         }
-
-        return null; // can't happen
     }
 
     @Override

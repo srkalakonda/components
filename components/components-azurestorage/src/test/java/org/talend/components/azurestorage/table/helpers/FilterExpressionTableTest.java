@@ -172,30 +172,32 @@ public class FilterExpressionTableTest {
 
     @Test
     public void testGetFieldType() {
-        assertEquals(EdmType.STRING, fet.getType(STRING.toString()));
-        assertEquals(EdmType.INT64, fet.getType(INT64.toString()));
-        assertEquals(EdmType.INT32, fet.getType(NUMERIC.toString()));
-        assertEquals(EdmType.BINARY, fet.getType(BINARY.toString()));
-        assertEquals(EdmType.GUID, fet.getType(GUID.toString()));
-        assertEquals(EdmType.DATE_TIME, fet.getType(DATE.toString()));
-        assertEquals(EdmType.BOOLEAN, fet.getType(BOOLEAN.toString()));
+        assertEquals(EdmType.STRING, SupportedFieldType.getEdmType(STRING.toString()));
+        assertEquals(EdmType.INT64, SupportedFieldType.getEdmType(INT64.toString()));
+        assertEquals(EdmType.INT32, SupportedFieldType.getEdmType(NUMERIC.toString()));
+        assertEquals(EdmType.BINARY, SupportedFieldType.getEdmType(BINARY.toString()));
+        assertEquals(EdmType.GUID, SupportedFieldType.getEdmType(GUID.toString()));
+        assertEquals(EdmType.DATE_TIME, SupportedFieldType.getEdmType(DATE.toString()));
+        assertEquals(EdmType.BOOLEAN, SupportedFieldType.getEdmType(BOOLEAN.toString()));
     }
 
     @Test
     public void testGetComparison() {
-        assertEquals(QueryComparisons.EQUAL, fet.getComparison(Comparison.EQUAL.toString()));
-        assertEquals(QueryComparisons.NOT_EQUAL, fet.getComparison(Comparison.NOT_EQUAL.toString()));
-        assertEquals(QueryComparisons.GREATER_THAN, fet.getComparison(Comparison.GREATER_THAN.toString()));
-        assertEquals(QueryComparisons.GREATER_THAN_OR_EQUAL, fet.getComparison(Comparison.GREATER_THAN_OR_EQUAL.toString()));
-        assertEquals(QueryComparisons.LESS_THAN, fet.getComparison(Comparison.LESS_THAN.toString()));
-        assertEquals(QueryComparisons.LESS_THAN_OR_EQUAL, fet.getComparison(Comparison.LESS_THAN_OR_EQUAL.toString()));
+        assertEquals(QueryComparisons.EQUAL, Comparison.getQueryComparisons(Comparison.EQUAL.toString()));
+        assertEquals(QueryComparisons.NOT_EQUAL, Comparison.getQueryComparisons(Comparison.NOT_EQUAL.toString()));
+        assertEquals(QueryComparisons.GREATER_THAN, Comparison.getQueryComparisons(Comparison.GREATER_THAN.toString()));
+        assertEquals(QueryComparisons.GREATER_THAN_OR_EQUAL,
+                Comparison.getQueryComparisons(Comparison.GREATER_THAN_OR_EQUAL.toString()));
+        assertEquals(QueryComparisons.LESS_THAN, Comparison.getQueryComparisons(Comparison.LESS_THAN.toString()));
+        assertEquals(QueryComparisons.LESS_THAN_OR_EQUAL,
+                Comparison.getQueryComparisons(Comparison.LESS_THAN_OR_EQUAL.toString()));
     }
 
     @Test
     public void testGetOperator() {
-        assertEquals(Operators.AND, fet.getOperator(Predicate.AND.toString()));
-        assertEquals(Operators.OR, fet.getOperator(Predicate.OR.toString()));
-        assertEquals(Operators.NOT, fet.getOperator(Predicate.NOT.toString()));
+        assertEquals(Operators.AND, Predicate.getOperator(Predicate.AND.toString()));
+        assertEquals(Operators.OR, Predicate.getOperator(Predicate.OR.toString()));
+        assertEquals(Operators.NOT, Predicate.getOperator(Predicate.NOT.toString()));
     }
 
 }

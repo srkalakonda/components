@@ -16,16 +16,12 @@ import static org.talend.components.azurestorage.table.helpers.FilterExpressionT
 import static org.talend.daikon.properties.presentation.Widget.widget;
 import static org.talend.daikon.properties.property.PropertyFactory.newString;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.avro.Schema;
-import org.apache.avro.Schema.Field;
 import org.apache.avro.SchemaBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.talend.components.api.component.ISchemaListener;
 import org.talend.components.api.component.PropertyPathConnector;
 import org.talend.components.azurestorage.table.AzureStorageTableProperties;
@@ -46,8 +42,6 @@ public class TAzureStorageInputTableProperties extends AzureStorageTableProperti
     public FilterExpressionTable filterExpression = new FilterExpressionTable("filterExpression");
 
     public Property<String> producedFilter = newString("producedFilter");
-
-    private transient static final Logger LOG = LoggerFactory.getLogger(TAzureStorageInputTableProperties.class);
 
     public TAzureStorageInputTableProperties(String name) {
         super(name);
@@ -126,7 +120,7 @@ public class TAzureStorageInputTableProperties extends AzureStorageTableProperti
     }
 
     protected void updateFilterExpressionTable() {
-        List<String> fieldNames = getSchemaFields();
+        List<String> fieldNames = AvroUtils.getFieldNames(schema.schema.getValue());
         filterExpression.updateSchemaColumnNames(fieldNames);
     }
 
@@ -140,11 +134,4 @@ public class TAzureStorageInputTableProperties extends AzureStorageTableProperti
         refreshLayout(getForm(Form.ADVANCED));
     }
 
-    public List<String> getSchemaFields() {
-        List<String> fields = new ArrayList<String>();
-        for (Field f : schema.schema.getValue().getFields()) {
-            fields.add(f.name());
-        }
-        return fields;
-    }
 }

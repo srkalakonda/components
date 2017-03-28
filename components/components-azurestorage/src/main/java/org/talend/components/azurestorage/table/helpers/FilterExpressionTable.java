@@ -14,22 +14,18 @@ package org.talend.components.azurestorage.table.helpers;
 
 import static org.talend.daikon.properties.property.PropertyFactory.newProperty;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.reflect.TypeLiteral;
 import org.talend.components.api.properties.ComponentPropertiesImpl;
-import org.talend.daikon.i18n.GlobalI18N;
-import org.talend.daikon.i18n.I18nMessages;
 import org.talend.daikon.properties.presentation.Form;
 import org.talend.daikon.properties.presentation.Widget;
 import org.talend.daikon.properties.property.Property;
 
 import com.microsoft.azure.storage.table.EdmType;
 import com.microsoft.azure.storage.table.TableQuery;
-import com.microsoft.azure.storage.table.TableQuery.Operators;
-import com.microsoft.azure.storage.table.TableQuery.QueryComparisons;
 
 public class FilterExpressionTable extends ComponentPropertiesImpl {
 
@@ -50,10 +46,7 @@ public class FilterExpressionTable extends ComponentPropertiesImpl {
 
     public Property<List<String>> fieldType = newProperty(LIST_STRING_TYPE, "fieldType");
 
-    private final List<String> schemaColumnNames = new LinkedList<>();
-
-    private static final I18nMessages i18nMessages = GlobalI18N.getI18nMessageProvider()
-            .getI18nMessages(FilterExpressionTable.class);
+    private final List<String> schemaColumnNames = new ArrayList<>();
 
     public FilterExpressionTable(String name) {
         super(name);
@@ -103,61 +96,18 @@ public class FilterExpressionTable extends ComponentPropertiesImpl {
         mainForm.addColumn(Widget.widget(fieldType).setWidgetType(Widget.ENUMERATION_WIDGET_TYPE));
     }
 
-    public String getComparison(String f) {
-        switch (Comparison.parse(f)) {
-        case EQUAL:
-            return QueryComparisons.EQUAL;
-        case NOT_EQUAL:
-            return QueryComparisons.NOT_EQUAL;
-        case GREATER_THAN:
-            return QueryComparisons.GREATER_THAN;
-        case GREATER_THAN_OR_EQUAL:
-            return QueryComparisons.GREATER_THAN_OR_EQUAL;
-        case LESS_THAN:
-            return QueryComparisons.LESS_THAN;
-        case LESS_THAN_OR_EQUAL:
-            return QueryComparisons.LESS_THAN_OR_EQUAL;
-        default:
-            return null;
-        }
-    }
-
-    public String getOperator(String p) {
-
-        switch (Predicate.parse(p)) {
-        case AND:
-            return Operators.AND;
-        case OR:
-            return Operators.OR;
-        case NOT:
-            return Operators.NOT;
-        default:
-            return null;
-        }
-    }
-
-    public EdmType getType(String ft) {
-        switch (SupportedFieldType.parse(ft)) {
-        case STRING:
-            return EdmType.STRING;
-        case NUMERIC:
-            return EdmType.INT32;
-        case INT64:
-            return EdmType.INT64;
-        case DATE:
-            return EdmType.DATE_TIME;
-        case BINARY:
-            return EdmType.BINARY;
-        case GUID:
-            return EdmType.GUID;
-        case BOOLEAN:
-            return EdmType.BOOLEAN;
-        default:
-            return null;
-        }
-    }
-
-    private boolean canGenerateFilterExpession() {
+    /**
+     * this method check if the data in the Filter expression is valid and can produce a Query filter.<br/>
+     * the table is valid if :<br>
+     * 1) all column, fieldType, function, operand and predicate lists are not null<br/>
+     * 2) values in the lists column, fieldType, function, operand and predicate are not empty
+     * 
+     * <br/>
+     * 
+     * @return {@code true } if the two above condition are true
+     * 
+     */
+    private boolean isValidFilterExpession() {
 
         if (column.getValue() == null || fieldType.getValue() == null || function.getValue() == null || operand.getValue() == null
                 || predicate.getValue() == null) {
@@ -165,13 +115,12 @@ public class FilterExpressionTable extends ComponentPropertiesImpl {
             return false;
         }
 
-        boolean canGenerate = true;
-        for (int i = 0; i < column.getValue().size(); i++) {
-            canGenerate = canGenerate && StringUtils.isNotEmpty(column.getValue().get(i))
-                    && StringUtils.isNotEmpty(fieldType.getValue().get(i)) && StringUtils.isNotEmpty(function.getValue().get(i))
-                    && StringUtils.isNotEmpty(operand.getValue().get(i)) && StringUtils.isNotEmpty(predicate.getValue().get(i));
+        int tableSize = column.getValue().size();
+        for (int i = 0; i < tableSize; i++) {
+            if (StringUtils.isEmpty(column.getValue().get(i)) || StringUtils.isEmpty(fieldType.getValue().get(i))
+                    || StringUtils.isEmpty(function.getValue().get(i)) || StringUtils.isEmpty(operand.getValue().get(i))
+                    || StringUtils.isEmpty(predicate.getValue().get(i))) {
 
-            if (!canGenerate) {
                 return false;
             }
         }
@@ -181,18 +130,18 @@ public class FilterExpressionTable extends ComponentPropertiesImpl {
 
     public String generateCombinedFilterConditions() {
         String filter = "";
-        if (canGenerateFilterExpession()) {
+        if (isValidFilterExpession()) {
             for (int idx = 0; idx < column.getValue().size(); idx++) {
                 String c = column.getValue().get(idx);
                 String cfn = function.getValue().get(idx);
                 String cop = predicate.getValue().get(idx);
                 String typ = fieldType.getValue().get(idx);
 
-                String f = getComparison(cfn);
+                String f = Comparison.getQueryComparisons(cfn);
                 String v = operand.getValue().get(idx);
-                String p = getOperator(cop);
+                String p = Predicate.getOperator(cop);
 
-                EdmType t = getType(typ);
+                EdmType t = SupportedFieldType.getEdmType(typ);
 
                 String flt = TableQuery.generateFilterCondition(c, f, v, t);
 

@@ -13,7 +13,11 @@
 package org.talend.components.azurestorage.table.helpers;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import com.microsoft.azure.storage.table.TableQuery.Operators;
 
 public enum Predicate {
     AND("AND"),
@@ -22,34 +26,47 @@ public enum Predicate {
 
     private String displayName;
 
+    private static Map<String, Predicate> mapPossibleValues = new HashMap<>();
+
     private static List<String> possibleValues = new ArrayList<>();
+
+    static {
+        for (Predicate predicate : values()) {
+            mapPossibleValues.put(predicate.displayName, predicate);
+            possibleValues.add(predicate.displayName);
+        }
+    }
 
     private Predicate(String displayName) {
         this.displayName = displayName;
     }
 
     public static List<String> possibleValues() {
-        if (possibleValues.isEmpty()) {
-            for (Predicate predicat : values()) {
-                possibleValues.add(predicat.displayName);
-            }
-        }
         return possibleValues;
     }
 
-    public static Predicate parse(String s) {
-
-        if (!possibleValues().contains(s)) {
+    private static Predicate parse(String s) {
+        if (!mapPossibleValues.containsKey(s)) {
             throw new IllegalArgumentException(String.format("Invalid value %s, it must be %s", s, possibleValues));
         }
+        return mapPossibleValues.get(s);
+    }
 
-        for (Predicate predicat : values()) {
-            if (predicat.displayName.equals(s)) {
-                return predicat;
-            }
+    /**
+     * Convert String predicat to Azure Type {@link Operators}
+     */
+    public static String getOperator(String p) {
+
+        switch (parse(p)) {
+        case AND:
+            return Operators.AND;
+        case OR:
+            return Operators.OR;
+        case NOT:
+            return Operators.NOT;
+        default:
+            return null;
         }
-
-        return null; // can't happen
     }
 
     @Override

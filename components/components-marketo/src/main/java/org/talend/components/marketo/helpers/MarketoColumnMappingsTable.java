@@ -57,13 +57,15 @@ public class MarketoColumnMappingsTable extends BasedOnSchemaTable {
     public Map<String, String> getNameMappingsForMarketo() {
         Map<String, String> result = new HashMap<>();
         List<String> value = columnName.getValue();
-        if (value == null || value.isEmpty())
+        if (value == null || value.isEmpty()) {
             return result;
+        }
         for (int i = 0; i < value.size(); i++) {
             String schemaCol = value.get(i);
             String marketoCol = marketoColumnName.getValue().get(i);
-            if (marketoCol == null || marketoCol.isEmpty())
+            if (marketoCol == null || marketoCol.isEmpty()) {
                 marketoCol = schemaCol;
+            }
             result.put(schemaCol, marketoCol);
         }
         return result;
@@ -72,8 +74,9 @@ public class MarketoColumnMappingsTable extends BasedOnSchemaTable {
     public Map<String, String> getInputedNameMappingsForMarketo() {
         Map<String, String> result = new HashMap<>();
         List<String> value = columnName.getValue();
-        if (value == null || value.isEmpty())
+        if (value == null || value.isEmpty()) {
             return result;
+        }
         for (int i = 0; i < value.size(); i++) {
             String schemaCol = value.get(i);
             String marketoCol = marketoColumnName.getValue().get(i);
@@ -91,10 +94,11 @@ public class MarketoColumnMappingsTable extends BasedOnSchemaTable {
             marketoCol = mappings.get(f.name());
             if (StringUtils.isEmpty(marketoCol)) {
                 schemaCol = f.getProp(SchemaConstants.TALEND_COLUMN_DB_COLUMN_NAME);
-                if (!StringUtils.isEmpty(schemaCol))
+                if (!StringUtils.isEmpty(schemaCol)) {
                     marketoCol = schemaCol;
-                else
+                } else {
                     marketoCol = f.name();
+                }
             }
             result.add(marketoCol);
         }
@@ -102,8 +106,9 @@ public class MarketoColumnMappingsTable extends BasedOnSchemaTable {
     }
 
     public int size() {
-        if (marketoColumnName.getValue() == null)
+        if (marketoColumnName.getValue() == null) {
             return 0;
+        }
         return marketoColumnName.getValue().size();
     }
 

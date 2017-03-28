@@ -108,12 +108,14 @@ public class MarketoInputReader extends AbstractBoundedReader<IndexedRecord> {
     public MarketoRecordResult executeOperation(String position) throws IOException {
         switch (properties.inputOperation.getValue()) {
         case getLead:
-            if (isDynamic)
+            if (isDynamic) {
                 adaptSchemaToDynamic();
+            }
             return client.getLead(properties, position);
         case getMultipleLeads:
-            if (isDynamic)
+            if (isDynamic) {
                 adaptSchemaToDynamic();
+            }
             return client.getMultipleLeads(properties, position);
         case getLeadActivity:
             return client.getLeadActivity(properties, position);
@@ -126,8 +128,9 @@ public class MarketoInputReader extends AbstractBoundedReader<IndexedRecord> {
             case list:
                 return ((MarketoRESTClient) client).listCustomObjects(properties);
             case get:
-                if (isDynamic)
+                if (isDynamic) {
                     adaptSchemaToDynamic();
+                }
                 return ((MarketoRESTClient) client).getCustomObjects(properties, position);
             }
         }
@@ -151,10 +154,12 @@ public class MarketoInputReader extends AbstractBoundedReader<IndexedRecord> {
     @Override
     public boolean advance() throws IOException {
         recordIndex++;
-        if (recordIndex < records.size())
+        if (recordIndex < records.size()) {
             return true;
-        if (mktoResult.getRemainCount() == 0)
+        }
+        if (mktoResult.getRemainCount() == 0) {
             return false;
+        }
         // fetch more data
         mktoResult = executeOperation(mktoResult.getStreamPosition());
         boolean advanceable = mktoResult.getRecordCount() > 0;

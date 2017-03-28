@@ -309,10 +309,11 @@ public class TMarketoInputProperties extends MarketoComponentProperties {
 
     @Override
     protected Set<PropertyPathConnector> getAllSchemaPropertiesConnectors(boolean isOutputConnection) {
-        if (isOutputConnection)
+        if (isOutputConnection) {
             return Collections.singleton(MAIN_CONNECTOR);
-        else
+        } else {
             return Collections.emptySet();
+        }
     }
 
     @Override
@@ -579,8 +580,9 @@ public class TMarketoInputProperties extends MarketoComponentProperties {
         // protect mappings...
         if (fld.size() != mappingInput.size()) {
             List<String> mcn = new ArrayList<>();
-            for (String t : fld)
+            for (String t : fld) {
                 mcn.add("");
+            }
             mappingInput.marketoColumnName.setValue(mcn);
         }
     }

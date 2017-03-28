@@ -74,8 +74,9 @@ public class SyncStatus {
     }
 
     public String getAvailableReason() {
-        if (reasons == null || reasons.isEmpty())
+        if (reasons == null || reasons.isEmpty()) {
             return "";
+        }
         Map<String, String> m = reasons.get(0);
         String c = m.get("code");
         String msg = m.get("message");

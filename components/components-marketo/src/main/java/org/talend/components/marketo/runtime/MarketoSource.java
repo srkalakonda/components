@@ -62,8 +62,9 @@ public class MarketoSource extends MarketoSourceOrSink implements BoundedSource 
     @Override
     public ValidationResult validate(RuntimeContainer container) {
         ValidationResult vr = super.validate(container);
-        if (vr.getStatus().equals(Result.ERROR))
+        if (vr.getStatus().equals(Result.ERROR)) {
             return vr;
+        }
         if (properties instanceof TMarketoInputProperties) {
             TMarketoInputProperties p = (TMarketoInputProperties) properties;
             boolean useSOAP = properties.getConnectionProperties().apiMode.getValue().equals(APIMode.SOAP);
@@ -90,10 +91,11 @@ public class MarketoSource extends MarketoSourceOrSink implements BoundedSource 
             // getMultipleLeads
             if (p.inputOperation.getValue().equals(InputOperation.getMultipleLeads)) {
                 LeadSelector sel;
-                if (useSOAP)
+                if (useSOAP) {
                     sel = p.leadSelectorSOAP.getValue();
-                else
+                } else {
                     sel = p.leadSelectorREST.getValue();
+                }
                 switch (sel) {
                 case LeadKeySelector:
                     if (p.leadKeyValues.getValue().isEmpty()) {

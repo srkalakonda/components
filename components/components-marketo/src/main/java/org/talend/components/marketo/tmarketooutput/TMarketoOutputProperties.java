@@ -287,8 +287,9 @@ public class TMarketoOutputProperties extends MarketoComponentProperties {
         // protect mappings...
         if (fld.size() != mappingInput.size()) {
             List<String> mcn = new ArrayList<>();
-            for (String t : fld)
+            for (String t : fld) {
                 mcn.add("");
+            }
             mappingInput.marketoColumnName.setValue(mcn);
         }
     }

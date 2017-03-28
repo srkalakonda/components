@@ -145,8 +145,9 @@ public class MarketoBaseTestIT {
     public static void createDatasets(int numberOfLeads) throws Exception {
         LOG.info("Creating test leads");
         TMarketoOutputProperties p = initClient();
-        if (numberOfLeads < 5)
+        if (numberOfLeads < 5) {
             numberOfLeads = 5;
+        }
         // create leads for tests
         // test attributes
         List<Field> fields = new ArrayList<>();
@@ -242,8 +243,9 @@ public class MarketoBaseTestIT {
             }
             fields.add(designSchemaFields.get(idx));
         }
-        if (dynamicFieldAtPos >= designSchemaFields.size())
+        if (dynamicFieldAtPos >= designSchemaFields.size()) {
             fields.add(dynfield);
+        }
         dynamicSchema.setFields(fields);
         dynamicSchema.addProp(DiSchemaConstants.TALEND6_DYNAMIC_COLUMN_POSITION, String.valueOf(dynamicFieldAtPos));
 

@@ -100,8 +100,9 @@ public class MarketoSourceOrSink implements SourceOrSink, MarketoSourceOrSinkSch
         for (IndexedRecord co : r.getRecords()) {
             String name = co.get(0).toString();// name cannot be null
             Object displayName = co.get(1);
-            if (displayName == null)
+            if (displayName == null) {
                 displayName = name;
+            }
             customObjects.add(new SimpleNamedThing(name, displayName.toString()));
         }
         //
@@ -125,11 +126,13 @@ public class MarketoSourceOrSink implements SourceOrSink, MarketoSourceOrSinkSch
         ip.customObjectName.setValue(schemaName);
         Schema describeSchema = MarketoConstants.getCustomObjectDescribeSchema();
         MarketoRecordResult r = client.describeCustomObject(ip);
-        if (!r.isSuccess())
+        if (!r.isSuccess()) {
             return null;
+        }
         List<IndexedRecord> records = r.getRecords();
-        if (records == null || records.isEmpty())
+        if (records == null || records.isEmpty()) {
             return null;
+        }
         IndexedRecord record = records.get(0);
 
         return FieldDescription.getSchemaFromJson(schemaName, record.get(describeSchema.getField("fields").pos()).toString(),
@@ -138,8 +141,9 @@ public class MarketoSourceOrSink implements SourceOrSink, MarketoSourceOrSinkSch
 
     @Override
     public Schema getSchemaForCustomObject(String customObjectName) throws IOException {
-        if (StringUtils.isEmpty(customObjectName))
+        if (StringUtils.isEmpty(customObjectName)) {
             return null;
+        }
         return getEndpointSchema(null, customObjectName);
     }
 
@@ -155,8 +159,9 @@ public class MarketoSourceOrSink implements SourceOrSink, MarketoSourceOrSinkSch
     public Schema getDynamicSchema(String objectName, Schema design) throws IOException {
         // check if dynamic
         String strdynpos = design.getProp(DiSchemaConstants.TALEND6_DYNAMIC_COLUMN_POSITION);
-        if (strdynpos == null)
+        if (strdynpos == null) {
             return design;
+        }
         // check object managed
 
         // split existing fields according Schema dynamic column's position.
@@ -190,7 +195,9 @@ public class MarketoSourceOrSink implements SourceOrSink, MarketoSourceOrSinkSch
         //
         for (Field f : objectFields) {
             if (!existingFieldNames.contains(f.name())) // test if field isn't already in the schema
+            {
                 resultFields.add(f);
+            }
         }
         resultFields.addAll(afterFields);
         //
@@ -230,15 +237,17 @@ public class MarketoSourceOrSink implements SourceOrSink, MarketoSourceOrSinkSch
 
     public TMarketoConnectionProperties connect(RuntimeContainer container) {
         TMarketoConnectionProperties connProps = getConnectionProperties();
-        if (connProps == null)
+        if (connProps == null) {
             throw new IllegalArgumentException(messages.getMessage("error.validation.connection.null"));
+        }
         String refComponentId = connProps.getReferencedComponentId();
         TMarketoConnectionProperties shared;
         if (refComponentId != null) {// Using another component's connection
             if (container != null) { // In a runtime container
                 shared = (TMarketoConnectionProperties) container.getComponentData(refComponentId, KEY_CONNECTION_PROPERTIES);
-                if (shared != null)
+                if (shared != null) {
                     return shared;
+                }
             }
             connProps = connProps.getReferencedConnectionProperties(); // Design time
         }

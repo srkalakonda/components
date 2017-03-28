@@ -187,8 +187,9 @@ public class MarketoRESTClient extends MarketoClient implements MarketoClientSer
         retryCount = connection.maxReconnAttemps.getValue();
         retryInterval = connection.attemptsIntervalTime.getValue();
         try {
-            if (endpoint == null)
+            if (endpoint == null) {
                 throw new MarketoException(REST, "The endpoint is null!");
+            }
             URI basicURI = new URI(endpoint);
             if (basicURI.getPath() != null) {
                 basicPath = basicURI.toString();
@@ -602,9 +603,10 @@ public class MarketoRESTClient extends MarketoClient implements MarketoClientSer
                 mkto.setRecordCount(result.getResult().isEmpty() ? 0 : result.getResult().size());
                 mkto.setRemainCount((result.getNextPageToken() != null && result.isMoreResult()) ? batchLimit : 0);
                 mkto.setStreamPosition(result.getNextPageToken());
-                if (mkto.getRecordCount() > 0)
+                if (mkto.getRecordCount() > 0) {
                     mkto.setRecords(convertLeadRecords(result.getResult(), parameters.schemaInput.schema.getValue(),
                             parameters.mappingInput.getNameMappingsForMarketo()));
+                }
             } else {
                 mkto.setErrors(Arrays.asList(result.getErrors().get(0)));
             }
@@ -647,9 +649,10 @@ public class MarketoRESTClient extends MarketoClient implements MarketoClientSer
                 mkto.setRecordCount(result.getResult().isEmpty() ? 0 : result.getResult().size());
                 mkto.setRemainCount((result.getNextPageToken() != null && result.isMoreResult()) ? batchLimit : 0);
                 mkto.setStreamPosition(result.getNextPageToken());
-                if (mkto.getRecordCount() > 0)
+                if (mkto.getRecordCount() > 0) {
                     mkto.setRecords(convertLeadRecords(result.getResult(), parameters.schemaInput.schema.getValue(),
                             parameters.mappingInput.getNameMappingsForMarketo()));
+                }
             } else {
                 mkto.setErrors(Arrays.asList(result.getErrors().get(0)));
             }
@@ -721,9 +724,10 @@ public class MarketoRESTClient extends MarketoClient implements MarketoClientSer
                 mkto.setRecordCount(result.getResult().isEmpty() ? 0 : result.getResult().size());
                 mkto.setRemainCount((result.getNextPageToken() != null && mkto.getRecordCount() > 0) ? batchLimit : 0);
                 mkto.setStreamPosition(result.getNextPageToken());
-                if (mkto.getRecordCount() > 0)
+                if (mkto.getRecordCount() > 0) {
                     mkto.setRecords(convertLeadRecords(result.getResult(), parameters.schemaInput.schema.getValue(),
                             parameters.mappingInput.getNameMappingsForMarketo()));
+                }
             } else {
                 mkto.setErrors(Arrays.asList(result.getErrors().get(0)));
             }
@@ -752,15 +756,17 @@ public class MarketoRESTClient extends MarketoClient implements MarketoClientSer
             for (Object s : parameters.includeTypes.type.getPossibleValues()) {
                 incs.add(s.toString());
                 limit++;
-                if (limit == REST_API_ACTIVITY_TYPE_IDS_LIMIT)
+                if (limit == REST_API_ACTIVITY_TYPE_IDS_LIMIT) {
                     break;
+                }
             }
         }
         // remove unwanted activities
         if (!excs.isEmpty()) {
             for (String s : excs) {
-                if (incs.contains(s))
+                if (incs.contains(s)) {
                     incs.remove(s);
+                }
             }
         }
         // translate into ids
@@ -793,9 +799,10 @@ public class MarketoRESTClient extends MarketoClient implements MarketoClientSer
                 mkto.setRecordCount(result.getResult() == null ? 0 : result.getResult().size());
                 mkto.setRemainCount((result.getNextPageToken() != null && result.isMoreResult()) ? batchLimit : 0);
                 mkto.setStreamPosition(result.getNextPageToken());
-                if (mkto.getRecordCount() > 0)
+                if (mkto.getRecordCount() > 0) {
                     mkto.setRecords(convertLeadActivityRecords(result.getResult(), parameters.schemaInput.schema.getValue(),
                             parameters.mappingInput.getNameMappingsForMarketo()));
+                }
             } else {
                 mkto.setErrors(Arrays.asList(result.getErrors().get(0)));
             }
@@ -1060,8 +1067,9 @@ public class MarketoRESTClient extends MarketoClient implements MarketoClientSer
         try {
             LOG.debug("describeLead {}.", current_uri);
             DescribeFieldsResult rs = (DescribeFieldsResult) executeGetRequest(DescribeFieldsResult.class);
-            if (!rs.isSuccess())
+            if (!rs.isSuccess()) {
                 return fields;
+            }
             //
             for (FieldDescription d : rs.getResult()) {
                 fields.add(d.toAvroField());
@@ -1139,8 +1147,9 @@ public class MarketoRESTClient extends MarketoClient implements MarketoClientSer
                 mkto.setRecordCount(1);
                 mkto.setRecords(result.getRecords());
             } else {
-                if (result.getErrors() != null)
+                if (result.getErrors() != null) {
                     mkto.setErrors(result.getErrors());
+                }
             }
         } catch (MarketoException e) {
             LOG.error("{}.", e);
@@ -1180,8 +1189,9 @@ public class MarketoRESTClient extends MarketoClient implements MarketoClientSer
                 mkto.setRecordCount(result.getResult().size());
                 mkto.setRecords(result.getRecords());
             } else {
-                if (result.getErrors() != null)
+                if (result.getErrors() != null) {
                     mkto.setErrors(result.getErrors());
+                }
             }
         } catch (MarketoException e) {
             LOG.error("{}.", e);
@@ -1193,8 +1203,9 @@ public class MarketoRESTClient extends MarketoClient implements MarketoClientSer
     }
 
     public <T> T getValueType(Field field, Object value) {
-        if (value == null)
+        if (value == null) {
             return (T) value;
+        }
         Schema convSchema = field.schema();
         Schema.Type type = field.schema().getType();
         if (convSchema.getType().equals(Type.UNION)) {
@@ -1241,8 +1252,9 @@ public class MarketoRESTClient extends MarketoClient implements MarketoClientSer
 
     public List<IndexedRecord> parseCustomObjectRecords(List<LinkedTreeMap> customObjectRecords, Schema schema) {
         List<IndexedRecord> records = new ArrayList<>();
-        if (customObjectRecords == null || schema == null)
+        if (customObjectRecords == null || schema == null) {
             return records;
+        }
         for (LinkedTreeMap cor : customObjectRecords) {
             IndexedRecord record = new GenericData.Record(schema);
             for (Field f : schema.getFields()) {
@@ -1362,8 +1374,9 @@ public class MarketoRESTClient extends MarketoClient implements MarketoClientSer
         // if fields is unset : marketoGuid, dedupeFields (defined in mkto), updatedAt, createdAt will be returned.
         List<String> fields = new ArrayList<>();
         for (String f : parameters.getSchemaFields()) {
-            if (!f.equals(MarketoConstants.FIELD_MARKETO_GUID) && !f.equals(MarketoConstants.FIELD_SEQ))
+            if (!f.equals(MarketoConstants.FIELD_MARKETO_GUID) && !f.equals(MarketoConstants.FIELD_SEQ)) {
                 fields.add(f);
+            }
         }
         //
         int batchLimit = parameters.batchSize.getValue() > REST_API_BATCH_LIMIT ? REST_API_BATCH_LIMIT
@@ -1376,10 +1389,12 @@ public class MarketoRESTClient extends MarketoClient implements MarketoClientSer
                 .append(fmtParams("filterType", filterType))//
                 .append(fmtParams("filterValues", filterValues))//
                 .append(fmtParams(FIELD_BATCH_SIZE, batchLimit));
-        if (!fields.isEmpty())
+        if (!fields.isEmpty()) {
             current_uri.append(fmtParams(FIELD_FIELDS, csvString(fields.toArray())));
-        if (offset != null)
+        }
+        if (offset != null) {
             current_uri.append(fmtParams(FIELD_NEXT_PAGE_TOKEN, offset));
+        }
         // in body :
         // input (Array[CustomObject]): Input list of records. When using a single key, the list is a comma-separated
         // list of values. When using a compound key, the request must be sent as a JSON object, and each record must

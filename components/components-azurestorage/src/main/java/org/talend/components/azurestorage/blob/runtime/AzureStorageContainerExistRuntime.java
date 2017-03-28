@@ -71,7 +71,7 @@ public class AzureStorageContainerExistRuntime extends AzureStorageContainerRunt
         String returnContainer = AzureStorageUtils.getStudioNameFromProperty(AzureStorageContainerDefinition.RETURN_CONTAINER);
         String returnContainerExist = AzureStorageUtils
                 .getStudioNameFromProperty(TAzureStorageContainerExistDefinition.RETURN_CONTAINER_EXIST);
-        //
+
         runtimeContainer.setComponentData(componentId, returnContainer, containerName);
         runtimeContainer.setComponentData(componentId, returnContainerExist, containerExist);
     }

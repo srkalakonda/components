@@ -40,7 +40,6 @@ public class AzureStorageContainerCreateRuntime extends AzureStorageContainerRun
     private static final I18nMessages messages = GlobalI18N.getI18nMessageProvider()
             .getI18nMessages(AzureStorageContainerCreateRuntime.class);
 
-    //
     private AccessControl access;
 
     @Override

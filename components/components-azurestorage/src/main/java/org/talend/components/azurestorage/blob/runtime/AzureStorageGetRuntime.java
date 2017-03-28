@@ -51,8 +51,6 @@ public class AzureStorageGetRuntime extends AzureStorageContainerRuntime
     private static final I18nMessages messages = GlobalI18N.getI18nMessageProvider()
             .getI18nMessages(AzureStorageGetRuntime.class);
 
-    //
-    //
     private String localFolder;
 
     private RemoteBlobsGetTable remoteBlobsGet;
@@ -119,7 +117,7 @@ public class AzureStorageGetRuntime extends AzureStorageContainerRuntime
 
     public List<RemoteBlobGet> createRemoteBlobsGet() {
 
-        List<RemoteBlobGet> remoteBlobs = new ArrayList<RemoteBlobGet>();
+        List<RemoteBlobGet> remoteBlobs = new ArrayList<>();
         for (int idx = 0; idx < remoteBlobsGet.prefix.getValue().size(); idx++) {
             String prefix = "";
             boolean include = false;
@@ -147,7 +145,7 @@ public class AzureStorageGetRuntime extends AzureStorageContainerRuntime
         String componentId = runtimeContainer.getCurrentComponentId();
         String containerKey = AzureStorageUtils.getStudioNameFromProperty(AzureStorageContainerDefinition.RETURN_CONTAINER);
         String localFolderKey = AzureStorageUtils.getStudioNameFromProperty(AzureStorageBlobDefinition.RETURN_LOCAL_FOLDER);
-        //
+
         runtimeContainer.setComponentData(componentId, containerKey, this.containerName);
         runtimeContainer.setComponentData(componentId, localFolderKey, this.localFolder);
 

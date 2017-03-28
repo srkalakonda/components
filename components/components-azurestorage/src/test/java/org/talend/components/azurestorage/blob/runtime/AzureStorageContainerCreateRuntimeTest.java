@@ -32,14 +32,11 @@ public class AzureStorageContainerCreateRuntimeTest {
     private static final I18nMessages messages = GlobalI18N.getI18nMessageProvider()
             .getI18nMessages(AzureStorageContainerCreateRuntime.class);
 
-    //
     private RuntimeContainer runtimeContainer;
 
     private TAzureStorageContainerCreateProperties properties;
 
-    //
     private AzureStorageContainerCreateRuntime containerCreate;
-    //
 
     @Before
     public void setup() {
@@ -49,7 +46,7 @@ public class AzureStorageContainerCreateRuntimeTest {
         properties.connection = new TAzureStorageConnectionProperties(PROP_ + "Connection");
         properties.connection.accountName.setValue("fakeAccountName");
         properties.connection.accountKey.setValue("fakeAccountKey=ANBHFYRJJFHRIKKJFU");
-        //
+
         runtimeContainer = new RuntimeContainerMock();
         this.containerCreate = new AzureStorageContainerCreateRuntime();
     }
@@ -62,14 +59,14 @@ public class AzureStorageContainerCreateRuntimeTest {
     }
 
     @Test
-    public void testNameContainerEmpty() {
+    public void testInitializeNameContainerEmpty() {
         ValidationResult validationResult = containerCreate.initialize(runtimeContainer, properties);
         assertEquals(ValidationResult.Result.ERROR, validationResult.getStatus());
         assertEquals(messages.getMessage("error.ContainerEmpty"), validationResult.getMessage());
     }
 
     @Test
-    public void testNameContainerNonAlphaNumeric() {
+    public void testInitializeNameContainerNonAlphaNumeric() {
         properties.container.setValue("N@n_alpha_numeric#");
         ValidationResult validationResult = containerCreate.initialize(runtimeContainer, properties);
         assertEquals(ValidationResult.Result.ERROR, validationResult.getStatus());
@@ -77,7 +74,7 @@ public class AzureStorageContainerCreateRuntimeTest {
     }
 
     @Test
-    public void testNameContainerNonAllLowerCase() {
+    public void testInitializeNameContainerNonAllLowerCase() {
         properties.container.setValue("NonAllLowerCase");
         ValidationResult validationResult = containerCreate.initialize(runtimeContainer, properties);
         assertEquals(ValidationResult.Result.ERROR, validationResult.getStatus());
@@ -85,7 +82,7 @@ public class AzureStorageContainerCreateRuntimeTest {
     }
 
     @Test
-    public void testNameContainerLengthError() {
+    public void testInitializeNameContainerLengthError() {
         properties.container.setValue("aa"); // container name length between 3 and 63
         ValidationResult validationResult = containerCreate.initialize(runtimeContainer, properties);
         assertEquals(ValidationResult.Result.ERROR, validationResult.getStatus());
@@ -99,7 +96,7 @@ public class AzureStorageContainerCreateRuntimeTest {
     }
 
     @Test
-    public void testNameContainerValide() {
+    public void testInitializeNameContainerValide() {
         properties.container.setValue("container-name-ok-14"); // container name length between 3 and 63
         ValidationResult validationResult = containerCreate.initialize(runtimeContainer, properties);
         assertEquals(ValidationResult.OK.getStatus(), validationResult.getStatus());

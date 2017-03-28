@@ -38,17 +38,12 @@ public class AzureStorageContainerRuntime extends AzureStorageRuntime {
 
         this.containerName = componentProperties.container.getValue();
         this.dieOnError = componentProperties.dieOnError.getValue();
-        // validate
 
+        // validate
         ValidationResult validationResult = super.initialize(runtimeContainer, properties);
         if (validationResult.getStatus() == ValidationResult.Result.ERROR) {
             return validationResult;
         }
-
-        return validate();
-    }
-
-    private ValidationResult validate() {
 
         String errorMessage = "";
         // not empty

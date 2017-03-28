@@ -42,7 +42,7 @@ import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 
 /**
- * upload file to Azure blob storage
+ * Upload a set of files form a local folder to Azure blob storage
  */
 public class AzureStoragePutRuntime extends AzureStorageContainerRuntime
         implements ComponentDriverInitialization<ComponentProperties> {
@@ -116,7 +116,7 @@ public class AzureStoragePutRuntime extends AzureStorageContainerRuntime
             for (int idx = 0; idx < files.fileMask.getValue().size(); idx++) {
                 String fileMask = files.fileMask.getValue().get(idx);
                 String newName = files.newName.getValue().get(idx);
-                Map<String, String> map = new HashMap<String, String>();
+                Map<String, String> map = new HashMap<>();
                 map.put(fileMask, newName);
                 list.add(map);
             }
@@ -128,14 +128,10 @@ public class AzureStoragePutRuntime extends AzureStorageContainerRuntime
             fileMap = utils.genAzureObjectList(new File(localFolder), remoteFolder);
         }
         for (Map.Entry<String, String> entry : fileMap.entrySet()) {
-            try {
+            File source = new File(entry.getKey());
+            try (FileInputStream stream = new FileInputStream(source)) { // see try-with-resources concept
                 CloudBlockBlob blockBlob = blobContainer.getBlockBlobReference(entry.getValue());
-                File source = new File(entry.getKey());
-                FileInputStream stream = new FileInputStream(source);
-                // TODO Any Action ??? if remoteFolder doesn't exist it will fail...
-                blockBlob.upload(stream, source.length());
-                stream.close();
-
+                blockBlob.upload(stream, source.length()); // TODO Any Action ??? if remoteFolder doesn't exist it will fail...
             } catch (StorageException | URISyntaxException | IOException e) {
                 LOGGER.error(e.getLocalizedMessage());
                 if (dieOnError) {
@@ -151,7 +147,7 @@ public class AzureStoragePutRuntime extends AzureStorageContainerRuntime
         String containerKey = AzureStorageUtils.getStudioNameFromProperty(AzureStorageContainerDefinition.RETURN_CONTAINER);
         String localFolderKey = AzureStorageUtils.getStudioNameFromProperty(AzureStorageBlobDefinition.RETURN_LOCAL_FOLDER);
         String remoteFolderKey = AzureStorageUtils.getStudioNameFromProperty(AzureStorageBlobDefinition.RETURN_REMOTE_FOLDER);
-        //
+
         runtimeContainer.setComponentData(componentId, containerKey, this.containerName);
         runtimeContainer.setComponentData(componentId, localFolderKey, this.localFolder);
         runtimeContainer.setComponentData(componentId, remoteFolderKey, this.remoteFolder);

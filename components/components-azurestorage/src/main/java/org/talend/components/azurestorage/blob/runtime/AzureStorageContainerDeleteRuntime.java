@@ -77,8 +77,8 @@ public class AzureStorageContainerDeleteRuntime extends AzureStorageContainerRun
     private void setReturnValues(RuntimeContainer runtimeContainer) {
         String componentId = runtimeContainer.getCurrentComponentId();
         String returnContainer = AzureStorageUtils.getStudioNameFromProperty(AzureStorageContainerDefinition.RETURN_CONTAINER);
-        runtimeContainer.setComponentData(componentId, returnContainer, containerName);
 
+        runtimeContainer.setComponentData(componentId, returnContainer, containerName);
     }
 
 }

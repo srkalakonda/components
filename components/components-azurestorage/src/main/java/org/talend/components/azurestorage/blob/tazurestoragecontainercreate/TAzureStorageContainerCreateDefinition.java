@@ -34,12 +34,13 @@ public class TAzureStorageContainerCreateDefinition extends AzureStorageContaine
     public Class<? extends ComponentProperties> getPropertyClass() {
         return TAzureStorageContainerCreateProperties.class;
     }
-    
+
     @Override
     public RuntimeInfo getRuntimeInfo(ExecutionEngine engine, ComponentProperties properties,
             ConnectorTopology connectorTopology) {
-    	assertConnectorTopologyCompatibility(connectorTopology);
-    	assertEngineCompatibility(engine);
+
+        assertConnectorTopologyCompatibility(connectorTopology);
+        assertEngineCompatibility(engine);
         return getCommonRuntimeInfo(this.getClass().getClassLoader(), AzureStorageContainerCreateRuntime.class);
     }
 

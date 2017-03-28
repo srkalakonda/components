@@ -194,8 +194,8 @@ public class MarketoSourceOrSink implements SourceOrSink, MarketoSourceOrSinkSch
         }
         //
         for (Field f : objectFields) {
-            if (!existingFieldNames.contains(f.name())) // test if field isn't already in the schema
-            {
+            // test if field isn't already in the schema
+            if (!existingFieldNames.contains(f.name())) {
                 resultFields.add(f);
             }
         }

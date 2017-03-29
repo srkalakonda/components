@@ -15,12 +15,15 @@ package org.talend.components.azurestorage.blob.runtime;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.talend.components.api.container.RuntimeContainer;
+import org.talend.components.azurestorage.FileUtils;
 import org.talend.components.azurestorage.RuntimeContainerMock;
 import org.talend.components.azurestorage.blob.helpers.RemoteBlobsGetTable;
 import org.talend.components.azurestorage.blob.tazurestorageget.TAzureStorageGetProperties;
@@ -42,12 +45,10 @@ public class AzureStorageGetRuntimeTest {
 
     private AzureStorageGetRuntime storageGet;
 
-    private String TEST_FOLDER_PUT = "azurestorage-put";
-
-    private String folderPath;
+    private File localFolder;
 
     @Before
-    public void setup() {
+    public void setup() throws IOException {
         properties = new TAzureStorageGetProperties(PROP_ + "Get");
         properties.setupProperties();
         // valid connection
@@ -59,7 +60,7 @@ public class AzureStorageGetRuntimeTest {
         runtimeContainer = new RuntimeContainerMock();
         this.storageGet = new AzureStorageGetRuntime();
 
-        folderPath = getClass().getResource("/").getPath() + TEST_FOLDER_PUT;
+        localFolder = FileUtils.createTempDirectory();
     }
 
     @After
@@ -67,6 +68,7 @@ public class AzureStorageGetRuntimeTest {
         this.storageGet = null;
         properties = null;
         runtimeContainer = null;
+        localFolder.delete();
     }
 
     @Test
@@ -95,7 +97,7 @@ public class AzureStorageGetRuntimeTest {
         properties.remoteBlobsGet.prefix.setValue(new ArrayList<String>());
         properties.remoteBlobsGet.prefix.getValue().add("");
 
-        properties.localFolder.setValue(folderPath);
+        properties.localFolder.setValue(localFolder.getAbsolutePath());
         ValidationResult validationResult = storageGet.initialize(runtimeContainer, properties);
         assertNull(validationResult.getMessage());
         assertEquals(ValidationResult.OK.getStatus(), validationResult.getStatus());

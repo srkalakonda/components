@@ -15,12 +15,15 @@ package org.talend.components.azurestorage.blob.runtime;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.talend.components.api.container.RuntimeContainer;
+import org.talend.components.azurestorage.FileUtils;
 import org.talend.components.azurestorage.RuntimeContainerMock;
 import org.talend.components.azurestorage.blob.helpers.FileMaskTable;
 import org.talend.components.azurestorage.blob.tazurestorageput.TAzureStoragePutProperties;
@@ -42,12 +45,10 @@ public class AzureStoragePutRuntimeTest {
 
     private AzureStoragePutRuntime storagePut;
 
-    private String TEST_FOLDER_PUT = "azurestorage-put";
-
-    private String folderPath;
+    private File localFolder;
 
     @Before
-    public void setup() {
+    public void setup() throws IOException {
         properties = new TAzureStoragePutProperties(PROP_ + "Put");
         properties.setupProperties();
         // valid connection
@@ -59,7 +60,7 @@ public class AzureStoragePutRuntimeTest {
         runtimeContainer = new RuntimeContainerMock();
         this.storagePut = new AzureStoragePutRuntime();
 
-        folderPath = getClass().getResource("/").getPath() + TEST_FOLDER_PUT;
+        localFolder = FileUtils.createTempDirectory();
     }
 
     @After
@@ -67,6 +68,7 @@ public class AzureStoragePutRuntimeTest {
         this.storagePut = null;
         properties = null;
         runtimeContainer = null;
+        localFolder.delete();
     }
 
     @Test
@@ -78,7 +80,7 @@ public class AzureStoragePutRuntimeTest {
 
     @Test
     public void testEmptyFileList() {
-        properties.localFolder.setValue(folderPath);
+        properties.localFolder.setValue(localFolder.getAbsolutePath());
         properties.useFileList.setValue(true);
         properties.files = new FileMaskTable("fileMaskTable");
         properties.files.fileMask.setValue(new ArrayList<String>());
@@ -90,7 +92,7 @@ public class AzureStoragePutRuntimeTest {
 
     @Test
     public void testValidProperties() {
-        properties.localFolder.setValue(folderPath);
+        properties.localFolder.setValue(localFolder.getAbsolutePath());
         properties.useFileList.setValue(true);
         properties.files = new FileMaskTable("fileMaskTable");
         properties.files.fileMask.setValue(new ArrayList<String>());
@@ -100,8 +102,8 @@ public class AzureStoragePutRuntimeTest {
         properties.files.newName.getValue().add("NewFileName");
 
         ValidationResult validationResult = storagePut.initialize(runtimeContainer, properties);
-        assertEquals(ValidationResult.OK.getStatus(), validationResult.getStatus());
         assertNull(validationResult.getMessage());
+        assertEquals(ValidationResult.OK.getStatus(), validationResult.getStatus());
     }
 
 }

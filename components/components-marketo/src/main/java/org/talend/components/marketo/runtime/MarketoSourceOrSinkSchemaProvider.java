@@ -17,9 +17,6 @@ import java.io.IOException;
 import org.apache.avro.Schema;
 import org.talend.components.api.component.runtime.SourceOrSink;
 
-/**
- * Created by undx on 25/01/2017.
- */
 public interface MarketoSourceOrSinkSchemaProvider extends SourceOrSink {
 
     Schema getSchemaForCustomObject(String customObjectName) throws IOException;

@@ -30,7 +30,6 @@ import org.talend.components.marketo.tmarketoinput.TMarketoInputProperties.Custo
 import org.talend.components.marketo.tmarketoinput.TMarketoInputProperties.InputOperation;
 import org.talend.daikon.NamedThing;
 import org.talend.daikon.SimpleNamedThing;
-import org.talend.daikon.di.DiSchemaConstants;
 import org.talend.daikon.i18n.GlobalI18N;
 import org.talend.daikon.i18n.I18nMessages;
 import org.talend.daikon.properties.ValidationResult;
@@ -44,7 +43,7 @@ public class MarketoSourceOrSink implements SourceOrSink, MarketoSourceOrSinkSch
 
     protected static final String KEY_CONNECTION_PROPERTIES = "connection";
 
-    private transient static final Logger LOG = LoggerFactory.getLogger(MarketoSourceOrSink.class);
+    private static final Logger LOG = LoggerFactory.getLogger(MarketoSourceOrSink.class);
 
     private static final I18nMessages messages = GlobalI18N.getI18nMessageProvider().getI18nMessages(MarketoSourceOrSink.class);
 
@@ -157,17 +156,7 @@ public class MarketoSourceOrSink implements SourceOrSink, MarketoSourceOrSinkSch
      * 
      */
     public Schema getDynamicSchema(String objectName, Schema design) throws IOException {
-        // check if dynamic
-        String strdynpos = design.getProp(DiSchemaConstants.TALEND6_DYNAMIC_COLUMN_POSITION);
-        if (strdynpos == null) {
-            return design;
-        }
-        // check object managed
-
-        // split existing fields according Schema dynamic column's position.
-        int dynPos = Integer.parseInt(strdynpos);
-        List<Field> beforeFields = new ArrayList<>();
-        List<Field> afterFields = new ArrayList<>();
+        List<Field> designFields = new ArrayList<>();
         List<String> existingFieldNames = new ArrayList<>();
         for (Field f : design.getFields()) {
             existingFieldNames.add(f.name());
@@ -176,15 +165,11 @@ public class MarketoSourceOrSink implements SourceOrSink, MarketoSourceOrSinkSch
             for (Map.Entry<String, Object> entry : f.getObjectProps().entrySet()) {
                 nf.addProp(entry.getKey(), entry.getValue());
             }
-            if (f.pos() < dynPos) {
-                beforeFields.add(nf);
-            } else {
-                afterFields.add(nf);
-            }
+            designFields.add(nf);
         }
-        List<Field> objectFields = new ArrayList<>();
+        List<Field> objectFields;
         List<Field> resultFields = new ArrayList<>();
-        resultFields.addAll(beforeFields);
+        resultFields.addAll(designFields);
         // will fetch fields...
         MarketoRESTClient client = (MarketoRESTClient) getClientService(null);
         if (StringUtils.isEmpty(objectName)) {
@@ -192,15 +177,12 @@ public class MarketoSourceOrSink implements SourceOrSink, MarketoSourceOrSinkSch
         } else {
             objectFields = getSchemaFieldsList(getEndpointSchema(null, objectName));
         }
-        //
         for (Field f : objectFields) {
             // test if field isn't already in the schema
             if (!existingFieldNames.contains(f.name())) {
                 resultFields.add(f);
             }
         }
-        resultFields.addAll(afterFields);
-        //
         Schema resultSchema = Schema.createRecord(design.getName(), design.getDoc(), design.getNamespace(), design.isError());
         resultSchema.getObjectProps().putAll(design.getObjectProps());
         resultSchema.setFields(resultFields);

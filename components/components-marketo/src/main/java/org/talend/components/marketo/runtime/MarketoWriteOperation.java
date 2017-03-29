@@ -14,8 +14,6 @@ package org.talend.components.marketo.runtime;
 
 import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.talend.components.api.component.runtime.Result;
 import org.talend.components.api.component.runtime.Sink;
 import org.talend.components.api.component.runtime.WriteOperation;
@@ -28,8 +26,6 @@ import org.talend.components.marketo.tmarketooutput.TMarketoOutputProperties;
 public class MarketoWriteOperation implements WriteOperation<Result> {
 
     MarketoSink sink;
-
-    private transient static final Logger LOG = LoggerFactory.getLogger(MarketoWriteOperation.class);
 
     public MarketoWriteOperation(Sink sink) {
         this.sink = (MarketoSink) sink;

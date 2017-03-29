@@ -19,7 +19,6 @@ import static org.talend.components.marketo.tmarketoconnection.TMarketoConnectio
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import javax.inject.Inject;
 
@@ -30,7 +29,6 @@ import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.IndexedRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.talend.components.marketo.MarketoConstants;
 import org.talend.components.marketo.runtime.client.MarketoRESTClient;
 import org.talend.components.marketo.runtime.client.rest.type.SyncStatus;
 import org.talend.components.marketo.runtime.client.type.ListOperationParameters;
@@ -40,7 +38,6 @@ import org.talend.components.marketo.tmarketooutput.TMarketoOutputProperties.Ope
 import org.talend.components.marketo.tmarketooutput.TMarketoOutputProperties.OutputOperation;
 import org.talend.components.marketo.tmarketooutput.TMarketoOutputProperties.RESTLookupFields;
 import org.talend.daikon.definition.service.DefinitionRegistryService;
-import org.talend.daikon.di.DiSchemaConstants;
 
 public class MarketoBaseTestIT {
 
@@ -206,50 +203,6 @@ public class MarketoBaseTestIT {
         datasetsClient.deleteLeads(createdLeads.toArray(new Integer[] {}));
         LOG.info("Deleted {} leads.", createdLeads.size());
         createdLeads.clear();
-    }
-
-    /*
-     * Dynamic fields feature
-     */
-
-    public Field getDynamicSchemaField(int dynamicFieldAtPos) {
-        Field dynfield = new Schema.Field("DynamicColumn", Schema.create(Schema.Type.STRING), null, (Object) null);
-        dynfield.addProp("di.dynamic.column.name", "DynamicColumn");
-        dynfield.addProp("di.column.talendType", "id_Dynamic");
-        dynfield.addProp("talend.field.pattern", "dd-MM-yyyy");
-        dynfield.addProp("di.column.isNullable", "true");
-        dynfield.addProp("di.dynamic.column.position", String.valueOf(dynamicFieldAtPos));
-        dynfield.addProp("include-all-fields", "true");
-        return dynfield;
-    }
-
-    public Schema getDynamicFieldsSchemaForLead(int dynamicFieldAtPos) {
-        Schema dynamicSchema = Schema.createRecord("dynamic", "", "", false);
-        List<Field> designSchemaFields = new ArrayList<>();
-        for (Field f : MarketoConstants.getRESTSchemaForGetLeadOrGetMultipleLeads().getFields()) {
-            Field nf = new Field(f.name(), f.schema(), f.doc(), f.defaultVal());
-            nf.getObjectProps().putAll(f.getObjectProps());
-            for (Map.Entry<String, Object> entry : f.getObjectProps().entrySet()) {
-                nf.addProp(entry.getKey(), entry.getValue());
-            }
-            designSchemaFields.add(nf);
-        }
-        Field dynfield = getDynamicSchemaField(dynamicFieldAtPos);
-        //
-        List<Field> fields = new ArrayList<>();
-        for (int idx = 0; idx < designSchemaFields.size(); idx++) {
-            if (dynamicFieldAtPos == idx) {
-                fields.add(dynfield);
-            }
-            fields.add(designSchemaFields.get(idx));
-        }
-        if (dynamicFieldAtPos >= designSchemaFields.size()) {
-            fields.add(dynfield);
-        }
-        dynamicSchema.setFields(fields);
-        dynamicSchema.addProp(DiSchemaConstants.TALEND6_DYNAMIC_COLUMN_POSITION, String.valueOf(dynamicFieldAtPos));
-
-        return dynamicSchema;
     }
 
 }

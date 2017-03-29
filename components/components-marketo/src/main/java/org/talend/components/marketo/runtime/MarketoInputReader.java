@@ -40,33 +40,30 @@ import org.talend.daikon.i18n.I18nMessages;
 
 public class MarketoInputReader extends AbstractBoundedReader<IndexedRecord> {
 
-    protected RuntimeContainer adaptor;
+    private MarketoSource source;
 
-    protected MarketoSource source;
+    private TMarketoInputProperties properties;
 
-    protected TMarketoInputProperties properties;
+    private int apiCalls = 0;
 
-    protected int apiCalls = 0;
+    private String errorMessage;
 
-    protected String errorMessage;
+    private MarketoClientService client;
 
-    MarketoClientService client;
+    private MarketoRecordResult mktoResult;
 
-    MarketoRecordResult mktoResult;
+    private List<IndexedRecord> records;
 
-    protected List<IndexedRecord> records;
+    private int recordIndex;
 
-    protected int recordIndex;
+    private Boolean isDynamic = Boolean.FALSE;
 
-    Boolean isDynamic = Boolean.FALSE;
-
-    private transient static final Logger LOG = LoggerFactory.getLogger(MarketoInputReader.class);
+    private static final Logger LOG = LoggerFactory.getLogger(MarketoInputReader.class);
 
     private static final I18nMessages messages = GlobalI18N.getI18nMessageProvider().getI18nMessages(MarketoInputReader.class);
 
     public MarketoInputReader(RuntimeContainer adaptor, MarketoSource source, TMarketoInputProperties properties) {
         super(source);
-        this.adaptor = adaptor;
         this.source = source;
         this.properties = properties;
         // check if we've a dynamic schema...
@@ -75,34 +72,36 @@ public class MarketoInputReader extends AbstractBoundedReader<IndexedRecord> {
 
     public void adaptSchemaToDynamic() throws IOException {
         Schema design = this.properties.schemaInput.schema.getValue();
-        if (isDynamic) {
-            try {
-                Schema runtimeSchema = null;
-                if (!properties.inputOperation.getValue().equals(InputOperation.CustomObject)) {
-                    runtimeSchema = source.getDynamicSchema("", design);
-                    // preserve mappings to re-apply them after
-                    Map<String, String> mappings = properties.mappingInput.getNameMappingsForMarketo();
-                    List<String> columnNames = new ArrayList<>();
-                    List<String> mktoNames = new ArrayList<>();
-                    for (Field f : runtimeSchema.getFields()) {
-                        columnNames.add(f.name());
-                        if (mappings.get(f.name()) != null) {
-                            mktoNames.add(mappings.get(f.name()));
-                        } else {
-                            mktoNames.add("");
-                        }
-                    }
-                    properties.mappingInput.columnName.setValue(columnNames);
-                    properties.mappingInput.marketoColumnName.setValue(mktoNames);
-                } else {
-                    runtimeSchema = source.getDynamicSchema(properties.customObjectName.getValue(), design);
-                }
-                properties.schemaInput.schema.setValue(runtimeSchema);
-            } catch (IOException e) {
-                LOG.error(e.getMessage());
-                throw e;
-            }
+        if (!isDynamic) {
+            return;
         }
+        try {
+            Schema runtimeSchema;
+            if (!properties.inputOperation.getValue().equals(InputOperation.CustomObject)) {
+                runtimeSchema = source.getDynamicSchema("", design);
+                // preserve mappings to re-apply them after
+                Map<String, String> mappings = properties.mappingInput.getNameMappingsForMarketo();
+                List<String> columnNames = new ArrayList<>();
+                List<String> mktoNames = new ArrayList<>();
+                for (Field f : runtimeSchema.getFields()) {
+                    columnNames.add(f.name());
+                    if (mappings.get(f.name()) != null) {
+                        mktoNames.add(mappings.get(f.name()));
+                    } else {
+                        mktoNames.add("");
+                    }
+                }
+                properties.mappingInput.columnName.setValue(columnNames);
+                properties.mappingInput.marketoColumnName.setValue(mktoNames);
+            } else {
+                runtimeSchema = source.getDynamicSchema(properties.customObjectName.getValue(), design);
+            }
+            properties.schemaInput.schema.setValue(runtimeSchema);
+        } catch (IOException e) {
+            LOG.error(e.getMessage());
+            throw e;
+        }
+
     }
 
     public MarketoRecordResult executeOperation(String position) throws IOException {
@@ -139,7 +138,7 @@ public class MarketoInputReader extends AbstractBoundedReader<IndexedRecord> {
 
     @Override
     public boolean start() throws IOException {
-        Boolean startable = false;
+        Boolean startable;
         client = source.getClientService(null);
         mktoResult = executeOperation(null);
         startable = mktoResult.getRecordCount() > 0;

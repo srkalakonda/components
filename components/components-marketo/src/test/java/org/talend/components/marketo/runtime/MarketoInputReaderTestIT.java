@@ -30,17 +30,16 @@ import static org.talend.components.marketo.tmarketoinput.TMarketoInputPropertie
 import static org.talend.components.marketo.tmarketoinput.TMarketoInputProperties.ListParam.STATIC_LIST_NAME;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 
 import org.apache.avro.Schema;
+import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.IndexedRecord;
 import org.junit.Test;
 import org.slf4j.Logger;
-import org.talend.components.marketo.MarketoConstants;
 import org.talend.components.marketo.tmarketoinput.TMarketoInputProperties;
 import org.talend.components.marketo.tmarketoinput.TMarketoInputProperties.CustomObjectAction;
 import org.talend.components.marketo.tmarketoinput.TMarketoInputProperties.LeadKeyTypeREST;
-import org.talend.daikon.di.DiSchemaConstants;
+import org.talend.daikon.avro.SchemaConstants;
 
 public class MarketoInputReaderTestIT extends MarketoBaseTestIT {
 
@@ -218,7 +217,8 @@ public class MarketoInputReaderTestIT extends MarketoBaseTestIT {
         props.afterInputOperation();
         String email = "undx@undx.net";
         props.leadKeyValue.setValue(email);
-        props.schemaInput.schema.setValue(getDynamicFieldsSchemaForLead(1));
+        props.schemaInput.schema.setValue(
+                SchemaBuilder.builder().record("test").prop(SchemaConstants.INCLUDE_ALL_FIELDS, "true").fields().endRecord());
         reader = getReader(props);
         assertTrue(reader.start());
         IndexedRecord r = reader.getCurrent();
@@ -231,8 +231,8 @@ public class MarketoInputReaderTestIT extends MarketoBaseTestIT {
     public void testCustomObjectDynamicSchema() throws Exception {
         TMarketoInputProperties props = getRESTProperties();
         String coName = "smartphone_c";
-        String brand = "Nokia";
-        String models = "3110";
+        String brand = "Apple";
+        String models = "iPhone 7";
         props.inputOperation.setValue(CustomObject);
         props.customObjectAction.setValue(CustomObjectAction.get);
         props.batchSize.setValue(1);
@@ -240,9 +240,9 @@ public class MarketoInputReaderTestIT extends MarketoBaseTestIT {
         props.customObjectName.setValue(coName);
         props.customObjectFilterType.setValue("model");
         props.customObjectFilterValues.setValue(models);
-        Schema design = props.newSchema(MarketoConstants.getCustomObjectRecordSchema(), "dynamic",
-                Arrays.asList(getDynamicSchemaField(4)));
-        design.addProp(DiSchemaConstants.TALEND6_DYNAMIC_COLUMN_POSITION, "4");
+        Schema design = SchemaBuilder.builder().record("test").prop(SchemaConstants.INCLUDE_ALL_FIELDS, "true").fields()
+                .endRecord();
+        design.addProp(SchemaConstants.INCLUDE_ALL_FIELDS, "true");
         props.schemaInput.schema.setValue(design);
         reader = getReader(props);
         assertTrue(reader.start());

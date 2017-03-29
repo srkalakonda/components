@@ -40,6 +40,7 @@ import java.util.Map;
 
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
+import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
 import org.apache.avro.generic.IndexedRecord;
 import org.junit.Before;
@@ -64,7 +65,7 @@ import org.talend.components.marketo.tmarketooutput.TMarketoOutputProperties;
 import org.talend.components.marketo.tmarketooutput.TMarketoOutputProperties.OperationType;
 import org.talend.components.marketo.tmarketooutput.TMarketoOutputProperties.OutputOperation;
 import org.talend.components.marketo.tmarketooutput.TMarketoOutputProperties.RESTLookupFields;
-import org.talend.daikon.di.DiSchemaConstants;
+import org.talend.daikon.avro.SchemaConstants;
 
 public class MarketoRESTClientTestIT extends MarketoClientTestIT {
 
@@ -733,7 +734,8 @@ public class MarketoRESTClientTestIT extends MarketoClientTestIT {
         iprops.batchSize.setValue(1);
         iprops.afterInputOperation();
         iprops.leadKeyValue.setValue(createdLeads.get(0).toString());
-        iprops.schemaInput.schema.setValue(getDynamicFieldsSchemaForLead(1));
+        iprops.schemaInput.schema.setValue(
+                SchemaBuilder.builder().record("test").prop(SchemaConstants.INCLUDE_ALL_FIELDS, "true").fields().endRecord());
         MarketoSource source = new MarketoSource();
         source.initialize(null, iprops);
         MarketoRESTClient client = (MarketoRESTClient) source.getClientService(null);
@@ -760,7 +762,7 @@ public class MarketoRESTClientTestIT extends MarketoClientTestIT {
         assertNotNull(r);
         LOG.debug("r = {}.", r);
         assertEquals("Retail-Dev", r.get(runtimeSchema.getField("company").pos()));
-        assertEquals(COMMON_LINKEDIN_ID, r.get(runtimeSchema.getField("linkedInId").pos()));
+        assertEquals(COMMON_LINKEDIN_ID.toString(), r.get(runtimeSchema.getField("linkedInId").pos()));
         assertEquals(COMMON_SFDC_ACCOUNT_ID, r.get(runtimeSchema.getField("sfdcAccountId").pos()));
     }
 
@@ -776,12 +778,11 @@ public class MarketoRESTClientTestIT extends MarketoClientTestIT {
         iprops.customObjectName.setValue(coName);
         iprops.customObjectFilterType.setValue("model");
         iprops.customObjectFilterValues.setValue(models);
-        Schema design = iprops.newSchema(MarketoConstants.getCustomObjectRecordSchema(), "dynamic",
-                Arrays.asList(getDynamicSchemaField(4)));
-        design.addProp(DiSchemaConstants.TALEND6_DYNAMIC_COLUMN_POSITION, "4");
+        iprops.schemaInput.schema.setValue(
+                SchemaBuilder.builder().record("test").prop(SchemaConstants.INCLUDE_ALL_FIELDS, "true").fields().endRecord());
         MarketoSource source = new MarketoSource();
         source.initialize(null, iprops);
-        Schema runtimeSchema = source.getDynamicSchema(coName, design);
+        Schema runtimeSchema = source.getDynamicSchema(coName, iprops.schemaInput.schema.getValue());
         LOG.debug("runtimeSchema = {}.", runtimeSchema);
         iprops.schemaInput.schema.setValue(runtimeSchema);
         MarketoRESTClient client = (MarketoRESTClient) source.getClientService(null);

@@ -40,9 +40,6 @@ import org.talend.daikon.properties.presentation.Form;
 import org.talend.daikon.properties.presentation.Widget;
 import org.talend.daikon.properties.property.Property;
 
-/**
- * Created by undx on 23/01/2017.
- */
 public class TMarketoOutputProperties extends MarketoComponentProperties {
 
     private transient static final Logger LOG = LoggerFactory.getLogger(TMarketoOutputProperties.class);

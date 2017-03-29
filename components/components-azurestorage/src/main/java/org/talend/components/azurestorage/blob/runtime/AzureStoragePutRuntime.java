@@ -54,7 +54,6 @@ public class AzureStoragePutRuntime extends AzureStorageContainerRuntime
     private static final I18nMessages messages = GlobalI18N.getI18nMessageProvider()
             .getI18nMessages(AzureStoragePutRuntime.class);
 
-    //
     private String localFolder;
 
     private String remoteFolder;

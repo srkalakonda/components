@@ -13,8 +13,8 @@
 package org.talend.components.azurestorage.blob.runtime;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
-import java.net.URL;
 import java.util.ArrayList;
 
 import org.junit.After;
@@ -36,14 +36,15 @@ public class AzureStorageGetRuntimeTest {
     private static final I18nMessages messages = GlobalI18N.getI18nMessageProvider()
             .getI18nMessages(AzureStorageGetRuntimeTest.class);
 
-    //
     private RuntimeContainer runtimeContainer;
 
     private TAzureStorageGetProperties properties;
 
-    //
     private AzureStorageGetRuntime storageGet;
-    //
+
+    private String TEST_FOLDER_PUT = "azurestorage-put";
+
+    private String folderPath;
 
     @Before
     public void setup() {
@@ -54,9 +55,11 @@ public class AzureStorageGetRuntimeTest {
         properties.connection.accountName.setValue("fakeAccountName");
         properties.connection.accountKey.setValue("fakeAccountKey=ANBHFYRJJFHRIKKJFU");
         properties.container.setValue("goog-container-name-1");
-        //
+
         runtimeContainer = new RuntimeContainerMock();
         this.storageGet = new AzureStorageGetRuntime();
+
+        folderPath = getClass().getResource("/").getPath() + TEST_FOLDER_PUT;
     }
 
     @After
@@ -67,7 +70,7 @@ public class AzureStorageGetRuntimeTest {
     }
 
     @Test
-    public void testEmptyBlobs() {
+    public void testInitializeEmptyBlobs() {
         properties.remoteBlobsGet = new RemoteBlobsGetTable("RemoteBlobsGetTable");
         properties.remoteBlobsGet.prefix.setValue(new ArrayList<String>());
         ValidationResult validationResult = storageGet.initialize(runtimeContainer, properties);
@@ -76,7 +79,7 @@ public class AzureStorageGetRuntimeTest {
     }
 
     @Test
-    public void testNonentityLocal() {
+    public void testInitializeNonentityLocal() {
         properties.remoteBlobsGet = new RemoteBlobsGetTable("RemoteBlobsGetTable");
         properties.remoteBlobsGet.prefix.setValue(new ArrayList<String>());
         properties.remoteBlobsGet.prefix.getValue().add("");
@@ -87,13 +90,14 @@ public class AzureStorageGetRuntimeTest {
     }
 
     @Test
-    public void testValidProperties() {
+    public void testInitializeValidProperties() {
         properties.remoteBlobsGet = new RemoteBlobsGetTable("RemoteBlobsGetTable");
         properties.remoteBlobsGet.prefix.setValue(new ArrayList<String>());
         properties.remoteBlobsGet.prefix.getValue().add("");
-        URL folderFromResourceTest = Thread.currentThread().getContextClassLoader().getResource("azurestorage-put");
-        properties.localFolder.setValue(folderFromResourceTest.getPath());
+
+        properties.localFolder.setValue(folderPath);
         ValidationResult validationResult = storageGet.initialize(runtimeContainer, properties);
+        assertNull(validationResult.getMessage());
         assertEquals(ValidationResult.OK.getStatus(), validationResult.getStatus());
     }
 

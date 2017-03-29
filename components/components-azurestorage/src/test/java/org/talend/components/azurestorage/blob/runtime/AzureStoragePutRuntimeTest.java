@@ -13,8 +13,8 @@
 package org.talend.components.azurestorage.blob.runtime;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
-import java.net.URL;
 import java.util.ArrayList;
 
 import org.junit.After;
@@ -36,14 +36,15 @@ public class AzureStoragePutRuntimeTest {
     private static final I18nMessages messages = GlobalI18N.getI18nMessageProvider()
             .getI18nMessages(AzureStorageGetRuntimeTest.class);
 
-    //
     private RuntimeContainer runtimeContainer;
 
     private TAzureStoragePutProperties properties;
 
-    //
     private AzureStoragePutRuntime storagePut;
-    //
+
+    private String TEST_FOLDER_PUT = "azurestorage-put";
+
+    private String folderPath;
 
     @Before
     public void setup() {
@@ -54,9 +55,11 @@ public class AzureStoragePutRuntimeTest {
         properties.connection.accountName.setValue("fakeAccountName");
         properties.connection.accountKey.setValue("fakeAccountKey=ANBHFYRJJFHRIKKJFU");
         properties.container.setValue("goog-container-name-1");
-        //
+
         runtimeContainer = new RuntimeContainerMock();
         this.storagePut = new AzureStoragePutRuntime();
+
+        folderPath = getClass().getResource("/").getPath() + TEST_FOLDER_PUT;
     }
 
     @After
@@ -75,8 +78,7 @@ public class AzureStoragePutRuntimeTest {
 
     @Test
     public void testEmptyFileList() {
-        URL folderFromResourceTest = Thread.currentThread().getContextClassLoader().getResource("azurestorage-put");
-        properties.localFolder.setValue(folderFromResourceTest.getPath());
+        properties.localFolder.setValue(folderPath);
         properties.useFileList.setValue(true);
         properties.files = new FileMaskTable("fileMaskTable");
         properties.files.fileMask.setValue(new ArrayList<String>());
@@ -88,8 +90,7 @@ public class AzureStoragePutRuntimeTest {
 
     @Test
     public void testValidProperties() {
-        URL folderFromResourceTest = Thread.currentThread().getContextClassLoader().getResource("azurestorage-put");
-        properties.localFolder.setValue(folderFromResourceTest.getPath());
+        properties.localFolder.setValue(folderPath);
         properties.useFileList.setValue(true);
         properties.files = new FileMaskTable("fileMaskTable");
         properties.files.fileMask.setValue(new ArrayList<String>());
@@ -100,6 +101,7 @@ public class AzureStoragePutRuntimeTest {
 
         ValidationResult validationResult = storagePut.initialize(runtimeContainer, properties);
         assertEquals(ValidationResult.OK.getStatus(), validationResult.getStatus());
+        assertNull(validationResult.getMessage());
     }
 
 }

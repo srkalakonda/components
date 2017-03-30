@@ -54,7 +54,7 @@ public class MarketoBulkExecReader extends AbstractBoundedReader<IndexedRecord> 
 
     @Override
     public boolean start() throws IOException {
-        Boolean startable = false;
+        Boolean startable;
         client = (MarketoRESTClient) source.getClientService(null);
         mktoResult = client.bulkImport(properties);
         startable = mktoResult.isSuccess();
@@ -67,6 +67,7 @@ public class MarketoBulkExecReader extends AbstractBoundedReader<IndexedRecord> 
 
     @Override
     public boolean advance() throws IOException {
+        // we have only one possible row.
         return false;
     }
 

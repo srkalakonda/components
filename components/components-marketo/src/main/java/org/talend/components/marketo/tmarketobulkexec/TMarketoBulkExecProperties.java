@@ -113,8 +113,9 @@ public class TMarketoBulkExecProperties extends MarketoComponentProperties {
 
         Boolean leadParamsVisibles = Boolean.FALSE;
         if (form.getName().equals(Form.MAIN)) {
-            if (bulkImportTo.getValue().equals(BulkImportTo.Leads))
+            if (bulkImportTo.getValue().equals(BulkImportTo.Leads)) {
                 leadParamsVisibles = true;
+            }
             form.getWidget(lookupField.getName()).setVisible(leadParamsVisibles);
             form.getWidget(listId.getName()).setVisible(leadParamsVisibles);
             form.getWidget(partitionName.getName()).setVisible(leadParamsVisibles);
@@ -124,10 +125,11 @@ public class TMarketoBulkExecProperties extends MarketoComponentProperties {
 
     public void afterBulkImportTo() {
         // update outgoing schema
-        if (bulkImportTo.getValue().equals(BulkImportTo.Leads))
+        if (bulkImportTo.getValue().equals(BulkImportTo.Leads)) {
             schemaInput.schema.setValue(MarketoConstants.getBulkImportLeadSchema());
-        else
+        } else {
             schemaInput.schema.setValue(MarketoConstants.getBulkImportCustomObjectSchema());
+        }
         //
         refreshLayout(getForm(Form.MAIN));
     }

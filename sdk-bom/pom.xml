@@ -1,0 +1,99 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	
+	<groupId>org.talend.components</groupId>
+	<artifactId>sdk-bom</artifactId>
+	<version>0.18.0-SNAPSHOT</version>
+	<packaging>pom</packaging>
+
+	<name>Components SDK BOM</name>
+	<!-- Versions should go in alphabetic order -->
+	<properties>
+		<!-- Dependency versions -->
+		<components-sdk.version>0.18.0-SNAPSHOT</components-sdk.version>
+		<daikon.version>0.16.0-SNAPSHOT</daikon.version>
+		<hamcrest.version>1.3</hamcrest.version>
+		<joda-time.version>2.8.2</joda-time.version> <!-- do we need to upgrade? -->
+		<junit.version>4.12</junit.version>
+		<mockito.version>2.2.15</mockito.version> <!-- do we need to upgrade? -->
+		<pax-url.version>2.4.7</pax-url.version>
+		<!-- Plugin versions -->
+		<maven-bundle-plugin.version>3.0.1</maven-bundle-plugin.version>
+	</properties>
+	<dependencyManagement>
+		<dependencies>
+			<!-- Components SDK -->
+			<dependency>
+				<groupId>org.talend.components</groupId>
+				<artifactId>components-api</artifactId>
+				<version>${components-sdk.version}</version>
+			</dependency>
+			<!-- Talend/Daikon? -->
+			<dependency>
+				<groupId>org.talend.daikon</groupId>
+				<artifactId>daikon</artifactId>
+				<version>${daikon.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.talend.daikon</groupId>
+				<artifactId>daikon</artifactId>
+				<classifier>tests</classifier>
+				<version>${daikon.version}</version>
+			</dependency>
+			<!-- Third party compile -->
+			<dependency>
+				<groupId>joda-time</groupId>
+				<artifactId>joda-time</artifactId>
+				<version>${joda-time.version}</version>
+			</dependency>
+			<!-- Third party test -->
+			<dependency>
+				<groupId>org.hamcrest</groupId>
+				<artifactId>hamcrest-core</artifactId>
+				<version>${hamcrest.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.hamcrest</groupId>
+				<artifactId>hamcrest-library</artifactId>
+				<version>${hamcrest.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>junit</groupId>
+				<artifactId>junit</artifactId>
+				<version>${junit.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.mockito</groupId>
+				<artifactId>mockito-core</artifactId>
+				<version>${mockito.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.ops4j.pax.url</groupId>
+				<artifactId>pax-url-aether</artifactId>
+				<version>${pax-url.version}</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+	
+	<build>
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<groupId>org.apache.felix</groupId>
+					<artifactId>maven-bundle-plugin</artifactId>
+					<version>${maven-bundle-plugin.version}</version>
+					<extensions>true</extensions>
+					<configuration>
+						<instructions>
+							<DynamicImport-Package>org.talend.daikon.*</DynamicImport-Package>
+						</instructions>
+					</configuration>
+				</plugin>
+			</plugins>
+		</pluginManagement>
+		<plugins>
+		</plugins>
+	</build>
+
+</project>

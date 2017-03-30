@@ -48,6 +48,7 @@
 	</distributionManagement>
 
 	<dependencies>
+		<!-- not used in components-api -->	
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
@@ -65,11 +66,13 @@
 			<classifier>tests</classifier>
 			<scope>test</scope>
 		</dependency>
+		<!-- not used in components-api -->
 		<dependency>
 			<groupId>org.talend.daikon</groupId>
 			<artifactId>daikon-spring-utils</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<!-- not used in components-api -->
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-log4j12</artifactId>

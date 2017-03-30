@@ -194,7 +194,7 @@ public class TMarketoConnectionProperties extends ComponentPropertiesImpl implem
     }
 
     public String getReferencedComponentId() {
-        return referencedComponent.componentInstanceId.getStringValue();
+        return referencedComponent.componentInstanceId.getValue();
     }
 
     public TMarketoConnectionProperties getReferencedConnectionProperties() {

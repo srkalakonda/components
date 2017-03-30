@@ -56,9 +56,9 @@ public class MarketoSource extends MarketoSourceOrSink implements BoundedSource 
     public boolean isInvalidDate(String datetime) {
         try {
             Date dt = new SimpleDateFormat(MarketoConstants.DATETIME_PATTERN_PARAM).parse(datetime);
-            return true;
-        } catch (ParseException e) {
             return false;
+        } catch (ParseException e) {
+            return true;
         }
     }
 

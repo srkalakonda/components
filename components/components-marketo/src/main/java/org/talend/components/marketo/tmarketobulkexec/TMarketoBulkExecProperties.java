@@ -22,7 +22,12 @@ import java.util.Set;
 import org.talend.components.api.component.PropertyPathConnector;
 import org.talend.components.marketo.MarketoComponentProperties;
 import org.talend.components.marketo.MarketoConstants;
+import org.talend.components.marketo.tmarketoconnection.TMarketoConnectionProperties.APIMode;
 import org.talend.components.marketo.tmarketooutput.TMarketoOutputProperties.RESTLookupFields;
+import org.talend.daikon.i18n.GlobalI18N;
+import org.talend.daikon.i18n.I18nMessages;
+import org.talend.daikon.properties.ValidationResult;
+import org.talend.daikon.properties.ValidationResult.Result;
 import org.talend.daikon.properties.presentation.Form;
 import org.talend.daikon.properties.property.Property;
 
@@ -56,6 +61,9 @@ public class TMarketoBulkExecProperties extends MarketoComponentProperties {
     public Property<Integer> pollWaitTime = newInteger("pollWaitTime").setRequired();
 
     public Property<String> logDownloadPath = newString("logDownloadPath").setRequired();
+
+    private static final I18nMessages messages = GlobalI18N.getI18nMessageProvider()
+            .getI18nMessages(TMarketoBulkExecProperties.class);
 
     public TMarketoBulkExecProperties(String name) {
         super(name);
@@ -132,5 +140,15 @@ public class TMarketoBulkExecProperties extends MarketoComponentProperties {
         }
         //
         refreshLayout(getForm(Form.MAIN));
+    }
+
+    public ValidationResult validateBulkImportTo() {
+        ValidationResult vr = new ValidationResult().setStatus(Result.OK);
+        if (connection.apiMode.getValue().equals(APIMode.SOAP)) {
+            vr.setStatus(Result.ERROR);
+            vr.setMessage(messages.getMessage("error.validation.soap.bulkexec"));
+            return vr;
+        }
+        return vr;
     }
 }

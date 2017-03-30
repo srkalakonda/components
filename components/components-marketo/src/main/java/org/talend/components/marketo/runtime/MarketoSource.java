@@ -219,6 +219,11 @@ public class MarketoSource extends MarketoSourceOrSink implements BoundedSource 
         // BulkExec
         if (properties instanceof TMarketoBulkExecProperties) {
             TMarketoBulkExecProperties p = (TMarketoBulkExecProperties) properties;
+            if (p.connection.apiMode.getValue().equals(APIMode.SOAP)) {
+                vr.setStatus(Result.ERROR);
+                vr.setMessage(messages.getMessage("error.validation.soap.bulkexec"));
+                return vr;
+            }
             if (StringUtils.isEmpty(p.bulkFilePath.getValue())) {
                 vr.setStatus(Result.ERROR);
                 vr.setMessage(messages.getMessage("error.validation.sink.bulk.bulkfilepath"));

@@ -253,16 +253,15 @@ public class BulkImport {
             record = new GenericData.Record(MarketoConstants.getBulkImportCustomObjectSchema());
             record.put(0, getBatchId());
             record.put(1, getImportTime());
-            record.put(2, getImportId());
-            record.put(3, getMessage());
-            record.put(4, getNumOfObjectsProcessed());
-            record.put(5, getNumOfRowsFailed());
-            record.put(6, getNumOfRowsWithWarning());
-            record.put(7, getObjectApiName());
-            record.put(8, getOperation());
-            record.put(9, getStatus());
-            record.put(10, getFailuresLogFile());
-            record.put(11, getWarningsLogFile());
+            record.put(2, getMessage());
+            record.put(3, getNumOfObjectsProcessed());
+            record.put(4, getNumOfRowsFailed());
+            record.put(5, getNumOfRowsWithWarning());
+            record.put(6, getObjectApiName());
+            record.put(7, getOperation());
+            record.put(8, getStatus());
+            record.put(9, getFailuresLogFile());
+            record.put(10, getWarningsLogFile());
         }
         return record;
     }

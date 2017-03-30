@@ -312,7 +312,6 @@ public class MarketoConstants {
         Schema s = SchemaBuilder.builder().record("bulkImportCustomObject").fields() //
                 .name("batchId").prop(SchemaConstants.TALEND_COLUMN_IS_KEY, "true").type().nullable().intType().noDefault() //
                 .name("importTime").type().nullable().stringType().noDefault() //
-                .name("importId").type().nullable().stringType().noDefault() //
                 .name("message").type().nullable().stringType().noDefault() //
                 .name("numOfObjectsProcessed").type().nullable().intType().noDefault() //
                 .name("numOfRowsFailed").type().nullable().intType().noDefault() //

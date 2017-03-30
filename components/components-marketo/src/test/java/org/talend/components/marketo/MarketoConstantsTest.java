@@ -223,7 +223,6 @@ public class MarketoConstantsTest {
         assertEquals("INT", ref.getField("batchId").schema().getTypes().get(0).getType().toString());
         assertEquals("true", ref.getField("batchId").getProp(SchemaConstants.TALEND_COLUMN_IS_KEY));
         assertEquals("STRING", ref.getField("importTime").schema().getTypes().get(0).getType().toString());
-        assertEquals("STRING", ref.getField("importId").schema().getTypes().get(0).getType().toString());
         assertEquals("STRING", ref.getField("message").schema().getTypes().get(0).getType().toString());
         assertEquals("INT", ref.getField("numOfObjectsProcessed").schema().getTypes().get(0).getType().toString());
         assertEquals("INT", ref.getField("numOfRowsFailed").schema().getTypes().get(0).getType().toString());

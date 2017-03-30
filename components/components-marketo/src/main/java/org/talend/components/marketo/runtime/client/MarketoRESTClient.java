@@ -32,6 +32,7 @@ import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -1709,7 +1710,7 @@ public class MarketoRESTClient extends MarketoClient implements MarketoClientSer
             }
             current_uri.append(fmtParams(FIELD_ACCESS_TOKEN, accessToken, true));
             LOG.debug("failures = {}.", current_uri);
-            logFile = downloadPath + bulk.getFailuresOrWarningsFilename(false);
+            logFile = Paths.get(Paths.get(downloadPath).toString(), bulk.getFailuresOrWarningsFilename(false)).toString();
             bulk.setFailuresLogFile(logFile);
             executeDownloadFileRequest(new File(logFile));
         }
@@ -1723,7 +1724,7 @@ public class MarketoRESTClient extends MarketoClient implements MarketoClientSer
             }
             current_uri.append(fmtParams(FIELD_ACCESS_TOKEN, accessToken, true));
             LOG.debug("warnings = {}.", current_uri);
-            logFile = downloadPath + bulk.getFailuresOrWarningsFilename(true);
+            logFile = Paths.get(Paths.get(downloadPath).toString(), bulk.getFailuresOrWarningsFilename(true)).toString();
             bulk.setWarningsLogFile(logFile);
             executeDownloadFileRequest(new File(logFile));
         }
@@ -1796,7 +1797,7 @@ public class MarketoRESTClient extends MarketoClient implements MarketoClientSer
                 while (true) {
                     try {
                         LOG.warn(messages.getMessage("bulkimport.status.waiting", pollWaitTime));
-                        Thread.sleep(pollWaitTime * 1000);
+                        Thread.sleep(pollWaitTime * 1000L);
                         current_uri = new StringBuilder(bulkPath);
                         if (bulkResult.isBulkLeadsImport()) {
                             current_uri.append(String.format(API_PATH_BULK_LEADS_RESULT, bulkResult.getBatchId(), "status"));

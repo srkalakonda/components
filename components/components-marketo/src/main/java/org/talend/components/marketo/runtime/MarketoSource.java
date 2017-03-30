@@ -1,5 +1,8 @@
 package org.talend.components.marketo.runtime;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -221,7 +224,19 @@ public class MarketoSource extends MarketoSourceOrSink implements BoundedSource 
                 vr.setMessage(messages.getMessage("error.validation.sink.bulk.bulkfilepath"));
                 return vr;
             }
+            Path tmpPath = Paths.get(p.bulkFilePath.getValue());
+            if (!Files.exists(tmpPath)) {
+                vr.setStatus(Result.ERROR);
+                vr.setMessage(messages.getMessage("error.validation.sink.bulk.bulkfilepath.notexists"));
+                return vr;
+            }
             if (StringUtils.isEmpty(p.logDownloadPath.getValue())) {
+                vr.setStatus(Result.ERROR);
+                vr.setMessage(messages.getMessage("error.validation.sink.bulk.logdownloadpath"));
+                return vr;
+            }
+            tmpPath = Paths.get(p.logDownloadPath.getValue());
+            if (!Files.isDirectory(tmpPath)) {
                 vr.setStatus(Result.ERROR);
                 vr.setMessage(messages.getMessage("error.validation.sink.bulk.logdownloadpath"));
                 return vr;

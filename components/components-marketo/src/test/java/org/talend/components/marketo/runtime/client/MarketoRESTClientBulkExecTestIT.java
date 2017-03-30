@@ -18,21 +18,29 @@ import static org.junit.Assert.assertTrue;
 import static org.talend.components.marketo.tmarketoconnection.TMarketoConnectionProperties.APIMode.REST;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import org.apache.avro.Schema;
 import org.apache.avro.generic.IndexedRecord;
+import org.apache.commons.io.FileUtils;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.talend.components.marketo.MarketoConstants;
 import org.talend.components.marketo.runtime.MarketoBaseTestIT;
-import org.talend.components.marketo.runtime.MarketoSink;
 import org.talend.components.marketo.runtime.MarketoSource;
 import org.talend.components.marketo.runtime.client.type.MarketoRecordResult;
 import org.talend.components.marketo.tmarketobulkexec.TMarketoBulkExecProperties;
 import org.talend.components.marketo.tmarketobulkexec.TMarketoBulkExecProperties.BulkImportTo;
+import org.talend.daikon.properties.ValidationResult.Result;
 
 public class MarketoRESTClientBulkExecTestIT extends MarketoBaseTestIT {
 
     TMarketoBulkExecProperties props;
+
+    static String downloadPath;
 
     String coCSV;
 
@@ -54,6 +62,16 @@ public class MarketoRESTClientBulkExecTestIT extends MarketoBaseTestIT {
         //
         coCSV = getClass().getResource("/customobjects.csv").getPath();
         leadCSV = getClass().getResource("/leads.csv").getPath();
+        downloadPath = getClass().getResource("/").getPath() + "logs";
+        Path dl = Paths.get(downloadPath);
+        if (!Files.exists(dl)) {
+            Files.createDirectory(dl);
+        }
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        FileUtils.deleteDirectory(new File(downloadPath));
     }
 
     @Test
@@ -61,16 +79,13 @@ public class MarketoRESTClientBulkExecTestIT extends MarketoBaseTestIT {
         props.bulkImportTo.setValue(BulkImportTo.CustomObjects);
         props.customObjectName.setValue("car_c");
         props.bulkFilePath.setValue(coCSV);
-        props.logDownloadPath.setValue("/Users/undx/tmp/");
+        props.logDownloadPath.setValue(downloadPath);
         props.pollWaitTime.setValue(5);
         props.afterBulkImportTo();
-        Schema s = props.schemaFlow.schema.getValue();
-        MarketoSink sink = new MarketoSink();
-        sink.initialize(null, props);
-        sink.validate(null);
-
+        Schema s = MarketoConstants.getBulkImportCustomObjectSchema();
         MarketoSource source = new MarketoSource();
         source.initialize(null, props);
+        assertEquals(Result.OK, source.validate(null).getStatus());
         MarketoRESTClient client = (MarketoRESTClient) source.getClientService(null);
         MarketoRecordResult result = client.bulkImport(props);
         assertTrue(result.isSuccess());
@@ -85,27 +100,24 @@ public class MarketoRESTClientBulkExecTestIT extends MarketoBaseTestIT {
         assertEquals("Complete", r.get(s.getField("status").pos()));
         Object batchId = r.get(s.getField("batchId").pos());
         assertNotNull(batchId);
-        String logf = String.format("/Users/undx/tmp/bulk_customobjects_car_c_%d_failures.csv",
-                Integer.valueOf(batchId.toString()));
-        assertEquals(logf, r.get(s.getField("failuresLogFile").pos()));
-        File failuresFile = new File(logf);
-        assertTrue(failuresFile.exists());
+        Path logf = Paths.get(downloadPath,
+                String.format("bulk_customobjects_car_c_%d_failures.csv", Integer.valueOf(batchId.toString())));
+        assertEquals(logf.toString(), r.get(s.getField("failuresLogFile").pos()));
+        assertTrue(Files.exists(logf));
+        assertEquals(216, Files.readAllBytes(logf).length);
     }
 
     @Test
     public void testBulkExecLead() throws Exception {
         props.bulkImportTo.setValue(BulkImportTo.Leads);
         props.bulkFilePath.setValue(leadCSV);
-        props.logDownloadPath.setValue("/Users/undx/tmp/");
+        props.logDownloadPath.setValue(downloadPath);
         props.pollWaitTime.setValue(1);
         props.afterBulkImportTo();
-        Schema s = props.schemaFlow.schema.getValue();
-        MarketoSink sink = new MarketoSink();
-        sink.initialize(null, props);
-        sink.validate(null);
-
+        Schema s = MarketoConstants.getBulkImportLeadSchema();
         MarketoSource source = new MarketoSource();
         source.initialize(null, props);
+        assertEquals(Result.OK, source.validate(null).getStatus());
         MarketoRESTClient client = (MarketoRESTClient) source.getClientService(null);
         MarketoRecordResult result = client.bulkImport(props);
         assertTrue(result.isSuccess());
@@ -118,10 +130,32 @@ public class MarketoRESTClientBulkExecTestIT extends MarketoBaseTestIT {
         assertEquals("Complete", r.get(s.getField("status").pos()));
         Object batchId = r.get(s.getField("batchId").pos());
         assertNotNull(batchId);
-        String logf = String.format("/Users/undx/tmp/bulk_leads_%d_warnings.csv", Integer.valueOf(batchId.toString()));
-        assertEquals(logf, r.get(s.getField("warningsLogFile").pos()));
-        File warningsFile = new File(logf);
-        assertTrue(warningsFile.exists());
+        Path logf = Paths.get(downloadPath, String.format("bulk_leads_%d_warnings.csv", Integer.valueOf(batchId.toString())));
+        assertEquals(logf.toString(), r.get(s.getField("warningsLogFile").pos()));
+        assertTrue(Files.exists(logf));
+        assertEquals(86, Files.readAllBytes(logf).length);
+    }
+
+    @Test
+    public void testBulkExecValidate() throws Exception {
+        props.bulkImportTo.setValue(BulkImportTo.Leads);
+        props.bulkFilePath.setValue(leadCSV);
+        props.logDownloadPath.setValue("/Users/undx/mp/");
+        props.pollWaitTime.setValue(1);
+        props.afterBulkImportTo();
+        MarketoSource source = new MarketoSource();
+        props.bulkFilePath.setValue("");
+        source.initialize(null, props);
+        assertEquals(Result.ERROR, source.validate(null).getStatus());
+        props.bulkFilePath.setValue("inexistant.csv");
+        source.initialize(null, props);
+        assertEquals(Result.ERROR, source.validate(null).getStatus());
+        props.bulkFilePath.setValue(leadCSV);
+        source.initialize(null, props);
+        assertEquals(Result.ERROR, source.validate(null).getStatus());
+        props.logDownloadPath.setValue(downloadPath);
+        source.initialize(null, props);
+        assertEquals(Result.OK, source.validate(null).getStatus());
     }
 
 }

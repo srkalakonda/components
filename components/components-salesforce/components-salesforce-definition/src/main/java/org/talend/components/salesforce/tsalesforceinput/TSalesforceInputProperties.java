@@ -142,10 +142,19 @@ public class TSalesforceInputProperties extends SalesforceConnectionModuleProper
             SalesforceRuntimeSourceOrSink salesforceSourceOrSink = (SalesforceRuntimeSourceOrSink) sandboxISalesforceSourceOrSink.getInstance();
             salesforceSourceOrSink.initialize(null, this);
 
-            String soqlQuery = ((SalesforceSchemaHelper<Schema>)salesforceSourceOrSink).guessQuery(module.main.schema.getValue(), module.moduleName.getValue());
-            query.setValue(soqlQuery);
+            Schema schema = module.main.schema.getValue();
+            String moduleName = module.moduleName.getValue();
 
-            validationResult.setStatus(ValidationResult.Result.OK);
+            //if neither module is selected will processed with first one from module-list
+            if (schema.getFields().size() > 0) {
+                String soqlQuery = ((SalesforceSchemaHelper<Schema>)salesforceSourceOrSink).guessQuery(schema, moduleName);
+                query.setValue(soqlQuery);
+
+                validationResult.setStatus(ValidationResult.Result.OK);
+            } else {
+                validationResult.setStatus(ValidationResult.Result.ERROR).setMessage("Schema does not contain any field. Query cannot be guessed");
+                query.setValue("");
+            }
         }
         return validationResult;
     }

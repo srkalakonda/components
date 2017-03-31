@@ -92,14 +92,14 @@ public class TestComponentProperties extends ComponentPropertiesImpl implements 
     }
 
     public ValidationResult beforeNameList() {
-        List values = new ArrayList<>();
+        List<String> values = new ArrayList<>();
         Collections.addAll(values, new String[] { "name1", "name2", "name3" });
         nameList.setPossibleValues(values);
         return ValidationResult.OK;
     }
 
     public void beforeNameListRef() {
-        List values = new ArrayList<>();
+        List<String> values = new ArrayList<>();
         Collections.addAll(values, new String[] { "namer1", "namer2", "namer3" });
         nameListRef.setPossibleValues(values);
     }

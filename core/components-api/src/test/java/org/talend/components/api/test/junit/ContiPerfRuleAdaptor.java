@@ -15,11 +15,18 @@ package org.talend.components.api.test.junit;
 import java.lang.reflect.Field;
 import java.util.List;
 
+import org.databene.contiperf.ExecutionLogger;
 import org.databene.contiperf.junit.ContiPerfRule;
+import org.databene.contiperf.report.CSVSummaryReportModule;
+import org.databene.contiperf.report.ReportContext;
+import org.databene.contiperf.report.ReportModule;
 import org.junit.internal.runners.statements.RunAfters;
 import org.junit.internal.runners.statements.RunBefores;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.Statement;
+import org.talend.components.api.test.junit.report.PerformanceTestsRegistry;
+import org.talend.components.api.test.junit.report.PerformanceTestsResultHolder;
+import org.talend.components.api.test.junit.report.XmlJUnitReportModule;
 
 /**
  * The purpose of this class is to create adapters for ContiPerf library, so it would be able to work with JUnit 4.12
@@ -32,10 +39,35 @@ import org.junit.runners.model.Statement;
  */
 public class ContiPerfRuleAdaptor extends ContiPerfRule {
 
+    private static PerformanceTestsRegistry testsRegistry = new PerformanceTestsRegistry();
+
+    private static PerformanceTestsResultHolder testsResultsHolder = new PerformanceTestsResultHolder();
+
+    public ContiPerfRuleAdaptor() {
+        super(new CSVSummaryReportModule(), new XmlJUnitReportModule(testsRegistry, testsResultsHolder, false));
+    }
+
+    public ContiPerfRuleAdaptor(ExecutionLogger logger) {
+        super(logger);
+    }
+
+    public ContiPerfRuleAdaptor(ReportModule... modules) {
+        super(modules);
+    }
+
+    protected ContiPerfRuleAdaptor(ReportContext context) {
+        super(context);
+    }
+
+    protected ContiPerfRuleAdaptor(ReportContext context, Object suite) {
+        super(context, suite);
+    }
+
     /**
      * The purpose of this method is to recreate statement with JUnit 4.12 and higher adapters.
      */
-    private Statement recreateStatementWithAdapters(Statement base) {
+    private Statement recreateStatementWithAdapters(Statement base, FrameworkMethod method, Object target) {
+        testsRegistry.registerClassPerfTestMethods(method.getMethod().getDeclaringClass());
         RunBefores runBefores = null;
         RunAfters runAfters = null;
         while (base instanceof RunAfters || base instanceof RunBefores) {
@@ -106,7 +138,7 @@ public class ContiPerfRuleAdaptor extends ContiPerfRule {
 
     @Override
     public Statement apply(Statement base, FrameworkMethod method, Object target) {
-        return super.apply(recreateStatementWithAdapters(base), method, target);
+        return super.apply(recreateStatementWithAdapters(base, method, target), method, target);
     }
 
 }

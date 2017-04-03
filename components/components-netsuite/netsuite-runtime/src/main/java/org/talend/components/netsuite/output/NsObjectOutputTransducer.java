@@ -111,9 +111,6 @@ public class NsObjectOutputTransducer extends NsObjectTransducer {
 
         Schema.Field externalIdField = NetSuiteDatasetRuntimeImpl.getNsFieldByName(schema, "externalId");
         String externalId = externalIdField != null ? (String) indexedRecord.get(externalIdField.pos()) : null;
-        if (internalId == null && externalId == null) {
-            return null;
-        }
 
         NsRef ref;
         if (recordTypeInfo instanceof CustomRecordTypeInfo) {

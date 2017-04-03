@@ -13,16 +13,7 @@
     <name>Components - NetSuite Runtime</name>
     <packaging>jar</packaging>
 
-    <properties>
-    </properties>
-
     <dependencies>
-
-        <dependency>
-            <groupId>org.talend.components</groupId>
-            <artifactId>components-adapter-beam</artifactId>
-            <version>${project.version}</version>
-        </dependency>
 
         <dependency>
             <groupId>org.talend.components</groupId>
@@ -50,6 +41,11 @@
             <artifactId>cxf-rt-transports-http</artifactId>
             <version>3.1.4</version>
         </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.module</groupId>
+            <artifactId>jackson-module-jaxb-annotations</artifactId>
+            <version>2.5.3</version>
+        </dependency>
 
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -61,12 +57,14 @@
             <artifactId>commons-beanutils</artifactId>
             <version>1.8.3</version>
         </dependency>
-
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+        </dependency>
         <dependency>
             <groupId>com.squareup</groupId>
             <artifactId>javapoet</artifactId>
             <version>1.8.0</version>
-            <optional>true</optional>
         </dependency>
 
         <!-- Tests -->

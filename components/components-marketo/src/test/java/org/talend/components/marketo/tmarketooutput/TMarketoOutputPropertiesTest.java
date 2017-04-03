@@ -28,9 +28,6 @@ import org.talend.components.marketo.tmarketooutput.TMarketoOutputProperties.Ope
 import org.talend.components.marketo.tmarketooutput.TMarketoOutputProperties.OutputOperation;
 import org.talend.components.marketo.tmarketooutput.TMarketoOutputProperties.RESTLookupFields;
 
-/**
- * Created by undx on 24/01/2017.
- */
 public class TMarketoOutputPropertiesTest {
 
     TMarketoOutputProperties props;
@@ -100,4 +97,8 @@ public class TMarketoOutputPropertiesTest {
         assertEquals(MarketoConstants.getSOAPOuputSchemaForSyncLead(), props.schemaInput.schema.getValue());
     }
 
+    @Test
+    public void testDefaultShema() throws Exception {
+        assertEquals(MarketoConstants.getRESTOutputSchemaForSyncLead(), props.schemaInput.schema.getValue());
+    }
 }

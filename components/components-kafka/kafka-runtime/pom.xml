@@ -15,16 +15,22 @@
 
     <name>Components - Kafka Runtime</name>
     <packaging>jar</packaging>
+
     <dependencies>
+        <dependency>
+            <groupId>org.talend.components</groupId>
+            <artifactId>components-adapter-beam</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.talend.components</groupId>
             <artifactId>kafka-definition</artifactId>
             <version>${project.version}</version>
         </dependency>
+
         <dependency>
-            <groupId>org.talend.components</groupId>
-            <artifactId>components-adapter-beam</artifactId>
-            <version>${project.version}</version>
+            <groupId>org.apache.beam</groupId>
+            <artifactId>beam-runners-direct-java</artifactId>
         </dependency>
 
         <!-- use Kafka client 0.9 to support Kafka 0.9 and above -->
@@ -45,6 +51,7 @@
                 </exclusion>
             </exclusions>
         </dependency>
+
         <!-- KafkaIO using spring-expression 4.3.5, but TCOMP spring environment using spring
         4.3.3 -->
         <dependency>
@@ -53,17 +60,18 @@
             <version>4.3.3.RELEASE</version>
         </dependency>
 
+        <!-- For dependency resolution. -->
+        <dependency>
+            <groupId>org.talend.components</groupId>
+            <artifactId>components-api</artifactId>
+            <version>${project.version}</version>
+            <classifier>tests</classifier>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.ops4j.pax.url</groupId>
             <artifactId>pax-url-aether</artifactId>
             <version>2.4.7</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <!-- Tests -->
-        <dependency>
-            <groupId>org.apache.beam</groupId>
-            <artifactId>beam-runners-direct-java</artifactId>
             <scope>test</scope>
         </dependency>
 

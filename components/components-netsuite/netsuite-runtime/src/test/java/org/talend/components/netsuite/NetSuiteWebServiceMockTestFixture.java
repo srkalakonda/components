@@ -18,19 +18,24 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.talend.components.netsuite.NetSuiteDatasetRuntimeImpl.getNsFieldName;
 import static org.talend.components.netsuite.client.NetSuiteClientService.MESSAGE_LOGGING_ENABLED_PROPERTY_NAME;
 import static org.talend.components.netsuite.client.model.beans.Beans.getProperty;
 
+import java.io.IOException;
 import java.net.URL;
 import java.util.List;
 
 import javax.xml.datatype.XMLGregorianCalendar;
 import javax.xml.namespace.QName;
 import javax.xml.ws.Endpoint;
+import javax.xml.ws.WebServiceException;
 
 import org.apache.avro.Schema;
 import org.apache.avro.generic.IndexedRecord;
 import org.apache.cxf.headers.Header;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.talend.components.netsuite.client.NetSuiteClientFactory;
 import org.talend.components.netsuite.client.NetSuiteClientService;
 import org.talend.components.netsuite.client.NetSuiteCredentials;
@@ -38,6 +43,7 @@ import org.talend.components.netsuite.client.model.CustomFieldDesc;
 import org.talend.components.netsuite.client.model.FieldDesc;
 import org.talend.components.netsuite.client.model.TypeDesc;
 import org.talend.components.netsuite.client.model.beans.Beans;
+import org.talend.components.netsuite.test.FreePortFinder;
 import org.talend.components.netsuite.test.TestFixture;
 import org.talend.components.netsuite.util.Mapper;
 
@@ -46,6 +52,8 @@ import org.talend.components.netsuite.util.Mapper;
  */
 public class NetSuiteWebServiceMockTestFixture<PortT, AdapterT extends NetSuitePortTypeMockAdapter<PortT>>
         implements TestFixture {
+
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
 
     private NetSuiteClientFactory<PortT> clientFactory;
     private NetSuiteServiceFactory<?> serviceFactory;
@@ -78,7 +86,37 @@ public class NetSuiteWebServiceMockTestFixture<PortT, AdapterT extends NetSuiteP
     public void setUp() throws Exception {
         System.setProperty("com.sun.xml.bind.v2.bytecode.ClassTailor.noOptimize", "true");
 
-        URL endpointAddress = new URL("http://localhost:8088/services/" + portName);
+        int retryCount = 3;
+        while (retryCount > 0) {
+            retryCount--;
+            try {
+                publish();
+                break;
+            } catch (WebServiceException | IOException e) {
+                logger.error("Service publishing error: {}", e);
+                if (retryCount == 0) {
+                    throw e;
+                }
+            }
+        }
+
+        URL wsdlLocation = new URL(portMockAdapter.getEndpointAddress().toString().concat("?wsdl"));
+//        assertNotNull(wsdlLocation.getContent());
+
+        service = serviceFactory.createService(wsdlLocation);
+
+        credentials = new NetSuiteCredentials(
+                "test@test.com", "12345", "test", "3");
+        credentials.setApplicationId("00000000-0000-0000-0000-000000000000");
+
+        reinstall();
+    }
+
+    protected void publish() throws Exception {
+        int portNumber = FreePortFinder.findFreePort(28080, FreePortFinder.MAX_PORT_NUMBER);
+        URL endpointAddress = new URL("http://localhost:" + portNumber + "/services/" + portName);
+
+        logger.info("Endpoint address: {}", endpointAddress);
 
         portMockAdapter = portAdapterClass.newInstance();
         portMockAdapter.setEndpointAddress(endpointAddress);
@@ -87,15 +125,6 @@ public class NetSuiteWebServiceMockTestFixture<PortT, AdapterT extends NetSuiteP
         endpoint = Endpoint.publish(endpointAddress.toString(), portMockAdapter);
         assertTrue(endpoint.isPublished());
         assertEquals("http://schemas.xmlsoap.org/wsdl/soap/http", endpoint.getBinding().getBindingID());
-
-        URL wsdlLocation = new URL(endpointAddress.toString().concat("?wsdl"));
-        service = serviceFactory.createService(wsdlLocation);
-
-        credentials = new NetSuiteCredentials(
-                "test@test.com", "12345", "test", "3");
-        credentials.setApplicationId("00000000-0000-0000-0000-000000000000");
-
-        reinstall();
     }
 
     @Override
@@ -162,9 +191,9 @@ public class NetSuiteWebServiceMockTestFixture<PortT, AdapterT extends NetSuiteP
         Schema recordSchema = indexedRecord.getSchema();
         assertEquals(typeDesc.getFields().size(), recordSchema.getFields().size());
 
-        for (FieldDesc fieldDesc : typeDesc.getFields()) {
-            String fieldName = fieldDesc.getName();
-            Schema.Field field = recordSchema.getField(fieldName);
+        for (Schema.Field field : recordSchema.getFields()) {
+            String nsFieldName = getNsFieldName(field);
+            FieldDesc fieldDesc = typeDesc.getField(nsFieldName);
             assertNotNull(field);
 
             Object value = indexedRecord.get(field.pos());
@@ -205,9 +234,8 @@ public class NetSuiteWebServiceMockTestFixture<PortT, AdapterT extends NetSuiteP
 
         for (FieldDesc fieldDesc : typeDesc.getFields()) {
             String fieldName = fieldDesc.getName();
-            String propertyName = fieldDesc.getInternalName();
 
-            Object value = getProperty(nsObject, propertyName);
+            Object value = getProperty(nsObject, fieldName);
 
             if (fieldDesc instanceof CustomFieldDesc) {
                 CustomFieldDesc customFieldDesc = fieldDesc.asCustom();

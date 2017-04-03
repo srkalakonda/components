@@ -23,12 +23,9 @@ import org.talend.components.api.properties.ComponentProperties;
 import org.talend.components.marketo.MarketoComponentDefinition;
 import org.talend.daikon.runtime.RuntimeInfo;
 
-/**
- * Created by undx on 23/01/2017.
- */
 public class TMarketoOutputDefinition extends MarketoComponentDefinition {
 
-    public static final String COMPONENT_NAME = "tMarketoOutputDEV";
+    public static final String COMPONENT_NAME = "tMarketoOutput";
 
     private transient static final Logger LOG = LoggerFactory.getLogger(TMarketoOutputDefinition.class);
 

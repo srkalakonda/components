@@ -21,12 +21,6 @@
 
         <dependency>
             <groupId>org.talend.components</groupId>
-            <artifactId>components-adapter-beam</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.talend.components</groupId>
             <artifactId>netsuite-definition</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -68,12 +62,14 @@
             <artifactId>commons-lang3</artifactId>
             <version>3.4</version>
         </dependency>
-
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+        </dependency>
         <dependency>
             <groupId>com.squareup</groupId>
             <artifactId>javapoet</artifactId>
             <version>1.8.0</version>
-            <optional>true</optional>
         </dependency>
 
         <!-- Tests -->
@@ -129,6 +125,23 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>com/netsuite/webservices/**/*</exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <configuration>
+                    <excludePackageNames>com.netsuite.webservices.*</excludePackageNames>
+                </configuration>
+            </plugin>
+
             <!-- Add Apache CXF generated sources to sources set. -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>

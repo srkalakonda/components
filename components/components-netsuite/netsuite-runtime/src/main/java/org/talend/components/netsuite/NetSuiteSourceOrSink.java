@@ -40,6 +40,7 @@ public abstract class NetSuiteSourceOrSink implements SourceOrSink {
     protected transient final Logger logger = LoggerFactory.getLogger(getClass());
 
     protected NetSuiteClientFactory<?> clientFactory;
+
     protected NetSuiteProvideConnectionProperties properties;
 
     protected transient NetSuiteEndpoint endpoint;
@@ -67,14 +68,15 @@ public abstract class NetSuiteSourceOrSink implements SourceOrSink {
 
             return ValidationResult.OK;
         } catch (NetSuiteException e) {
-            throw new ComponentException(exceptionToValidationResult(e));
+            return exceptionToValidationResult(e);
         }
     }
 
     @Override
     public List<NamedThing> getSchemaNames(RuntimeContainer container) throws IOException {
         try {
-            NetSuiteDatasetRuntime dataSetRuntime = new NetSuiteDatasetRuntimeImpl(getClientService());
+            NetSuiteDatasetRuntime dataSetRuntime = new NetSuiteDatasetRuntimeImpl(
+                    getClientService().getMetaDataSource());
             return dataSetRuntime.getRecordTypes();
         } catch (NetSuiteException e) {
             throw new IOException(e);
@@ -84,7 +86,8 @@ public abstract class NetSuiteSourceOrSink implements SourceOrSink {
     @Override
     public Schema getEndpointSchema(RuntimeContainer container, String schemaName) throws IOException {
         try {
-            NetSuiteDatasetRuntime dataSetRuntime = new NetSuiteDatasetRuntimeImpl(getClientService());
+            NetSuiteDatasetRuntime dataSetRuntime = new NetSuiteDatasetRuntimeImpl(
+                    getClientService().getMetaDataSource());
             return dataSetRuntime.getSchema(schemaName);
         } catch (NetSuiteException e) {
             throw new IOException(e);
@@ -92,8 +95,8 @@ public abstract class NetSuiteSourceOrSink implements SourceOrSink {
     }
 
     public NetSuiteConnectionProperties getConnectionProperties() {
-    return properties.getConnectionProperties();
-}
+        return properties.getConnectionProperties();
+    }
 
     public NetSuiteProvideConnectionProperties getProperties() {
         return properties;

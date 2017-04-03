@@ -25,8 +25,6 @@ import java.util.Set;
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
 import org.apache.avro.Schema.Type;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.talend.components.api.component.ISchemaListener;
 import org.talend.components.api.component.PropertyPathConnector;
 import org.talend.components.marketo.MarketoComponentProperties;
@@ -40,12 +38,7 @@ import org.talend.daikon.properties.presentation.Form;
 import org.talend.daikon.properties.presentation.Widget;
 import org.talend.daikon.properties.property.Property;
 
-/**
- * Created by undx on 23/01/2017.
- */
 public class TMarketoOutputProperties extends MarketoComponentProperties {
-
-    private transient static final Logger LOG = LoggerFactory.getLogger(TMarketoOutputProperties.class);
 
     public enum OutputOperation {
         syncLead, // This operation requests an insert or update operation for a lead record.
@@ -143,6 +136,8 @@ public class TMarketoOutputProperties extends MarketoComponentProperties {
         lookupField.setValue(RESTLookupFields.email);
 
         deDupeEnabled.setValue(false);
+
+        schemaInput.schema.setValue(MarketoConstants.getRESTOutputSchemaForSyncLead());
 
         setSchemaListener(new ISchemaListener() {
 
@@ -249,7 +244,6 @@ public class TMarketoOutputProperties extends MarketoComponentProperties {
     }
 
     public void afterApiMode() {
-        LOG.error("[TMarketoOutput] afterApiMode");
         if (connection.apiMode.getValue().equals(APIMode.SOAP)) {
             schemaInput.schema.setValue(MarketoConstants.getSOAPOuputSchemaForSyncLead());
         } else {
@@ -288,8 +282,9 @@ public class TMarketoOutputProperties extends MarketoComponentProperties {
         // protect mappings...
         if (fld.size() != mappingInput.size()) {
             List<String> mcn = new ArrayList<>();
-            for (String t : fld)
+            for (String t : fld) {
                 mcn.add("");
+            }
             mappingInput.marketoColumnName.setValue(mcn);
         }
     }
